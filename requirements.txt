@@ -2,7 +2,7 @@ torch
 torchvision
 torchaudio
 numpy==1.23.1
-matplotlib
+matplotlib<3.10
 tqdm
 termcolor
 mitsuba==3.5.2
