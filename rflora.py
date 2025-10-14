@@ -11,7 +11,7 @@ def get_args():
     parser = argparse.ArgumentParser(description='List the content of a folder')
     parser.add_argument('-m', '--model', type=str, default="darkstorm2150/Protogen_x5.3_Official_Release")
     parser.add_argument('-p','--prompt', type=str, default="a living room with a table, a chair, a TV, a computer, a lamp, a plant, a window, a door")
-    parser.add_argument('-n', '--name', type=str, default=f"output_{int(time.time())}")
+    parser.add_argument('-n', '--name', type=str, default=f"output_{int(time.time())}.png")
     parser.add_argument('-s', '--steps', type=int, default=25)
     args = parser.parse_args()
     return args.model, args.prompt, args.name, args.steps
