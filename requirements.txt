@@ -8,7 +8,6 @@ peft
 termcolor
 mitsuba==3.5.2
 smplpytorch
-diffusers==0.32.2
 transformers==4.49
 scipy
 ftfy
@@ -21,3 +20,4 @@ spacy
 chumpy
 ipykernel
 git+https://github.com/openai/CLIP.git
+git+https://github.com/huggingface/diffusers.git
