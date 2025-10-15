@@ -8,7 +8,6 @@ from tqdm import tqdm
 mi.set_variant('cuda_ad_rgb')
 torch.set_default_device('cuda')
 
-
 class RayTracer:
     def __init__(self) -> None:
         self.PIR_resolution = 128
@@ -16,8 +15,18 @@ class RayTracer:
         self.params_scene = mi.traverse(self.scene)
         self.body = None #smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
+        self.base_vertices = self._load_ply_vertices('/content/RF-Genesis/models/trihedral.ply')
+    
+    def _load_ply_vertices(self, ply_path):
+        """Load vertices from PLY file"""
+        mesh = mi.load_dict({
+            'type': 'ply',
+            'filename': ply_path
+        })
+        params = mi.traverse(mesh)
+        vertices = params['vertex_positions']
+        return vertices
+        
     def gen_rays(self):  
         sensor = self.scene.sensors()[0]
         film = sensor.film()
@@ -40,6 +49,29 @@ class RayTracer:
             sample3=0
         )
         return rays
+    
+    def update_mesh_rotation(self, axis, angle):
+        """Rotate the mesh by applying transform to base vertices"""
+        # Create rotation transform
+        transform = mi.Transform4f.rotate(axis=axis, angle=angle)
+        
+        # Apply transform to base vertices
+        vertices_flat = dr.ravel(self.base_vertices)
+        num_vertices = len(vertices_flat) // 3
+        
+        # Reshape to (N, 3) for transformation
+        vertices_reshaped = mi.Point3f(
+            vertices_flat[0::3],
+            vertices_flat[1::3],
+            vertices_flat[2::3]
+        )
+        
+        # Apply rotation
+        rotated_vertices = transform @ vertices_reshaped
+        
+        # Update scene
+        self.params_scene['smpl.vertex_positions'] = dr.ravel(rotated_vertices)
+        self.params_scene.update()
     
     def update_pose(self,pose_params, shape_params, translation= None):
         if pose_params is None:  # Skip SMPL, just apply transform
@@ -130,7 +162,6 @@ def get_deafult_scene(res = 512):
             'smpl':{
                 'type': 'ply',
                 'filename': '/content/RF-Genesis/models/trihedral.ply',
-                'to_world': T.rotate(axis=[0,1,0], angle=0),  
                 "mybsdf": {
                     "type": "ref",
                     "id": "while"
@@ -172,9 +203,8 @@ def trace(motion_filename=None):
     pointclouds = []
 
     for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering PLY PIRs"):
-        rotation = mi.Transform4f.rotate([0,1,0], frame_idx * 1)
-        raytracer.params_scene['smpl.to_world'] = rotation
-        raytracer.params_scene.update()
+        angle = frame_idx * 1  # 1 degree per frame
+        raytracer.update_mesh_rotation(axis=[0, 1, 0], angle=angle)
         #raytracer.update_pose(smpl_data['pose'][frame_idx], smpl_data['shape'][0], np.array(root_translation[frame_idx]) -  body_offset)
         PIR, pc = raytracer.trace()
         PIRs.append(torch.from_numpy(PIR).cuda())
