@@ -42,7 +42,12 @@ class RayTracer:
         return rays
     
     def update_pose(self,pose_params, shape_params, translation= None):
-        
+        if pose_params is None:  # Skip SMPL, just apply transform
+            if translation is not None:
+                transform = mi.Transform4f.translate(translation)
+                self.params_scene['smpl.to_world'] = transform
+                self.params_scene.update()
+            return
         pose_params = torch.tensor(pose_params).view(1, -1)
         shape_params = torch.tensor(shape_params).view(1, -1)
 
@@ -55,7 +60,7 @@ class RayTracer:
         
         self.params_scene['smpl.vertex_positions'] = dr.ravel(vertices_mi)
         self.params_scene.update()
-    
+        
     def update_sensor(self,origin, target):
         transform = mi.Transform4f.look_at(
                             origin=origin,
@@ -66,8 +71,6 @@ class RayTracer:
         self.params_scene['tx.to_world'] = transform
         self.params_scene.update()
     
-    
-
     def trace(self):
         ray = self.gen_rays()
         si = self.scene.ray_intersect(ray)                   # ray intersection
@@ -126,7 +129,8 @@ def get_deafult_scene(res = 512):
             },
             'smpl':{
                 'type': 'ply',
-                'filename': '../models/male.ply',
+                'filename': '../models/trihedral.ply',
+                'to_world': T.rotate(axis=[0,1,0], angle=0),  
                 "mybsdf": {
                     "type": "ref",
                     "id": "while"
@@ -163,7 +167,10 @@ def trace(motion_filename):
     total_motion_frames = len(root_translation)
 
     for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering Body PIRs"):
-        raytracer.update_pose(smpl_data['pose'][frame_idx], smpl_data['shape'][0], np.array(root_translation[frame_idx]) -  body_offset)
+        rotation = mi.Transform4f.rotate([0,1,0], frame_idx * 1)
+        raytracer.params_scene['smpl.to_world'] = rotation
+        raytracer.params_scene.update()
+        #raytracer.update_pose(smpl_data['pose'][frame_idx], smpl_data['shape'][0], np.array(root_translation[frame_idx]) -  body_offset)
         PIR, pc = raytracer.trace()
         PIRs.append(torch.from_numpy(PIR).cuda())
         pointclouds.append(torch.from_numpy(pc).cuda())
