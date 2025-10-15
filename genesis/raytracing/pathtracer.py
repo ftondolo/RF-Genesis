@@ -14,7 +14,7 @@ class RayTracer:
         self.PIR_resolution = 128
         self.scene = mi.load_dict(get_deafult_scene(res = self.PIR_resolution))
         self.params_scene = mi.traverse(self.scene)
-        self.body = smpl.get_smpl_layer()
+        self.body = None #smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
