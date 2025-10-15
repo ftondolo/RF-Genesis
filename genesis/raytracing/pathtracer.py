@@ -203,7 +203,7 @@ def trace(motion_filename=None):
     pointclouds = []
 
     for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering PLY PIRs"):
-        angle = frame_idx * 1  # 1 degree per frame
+        angle = frame_idx * 1.8  # 1 degree per frame
         raytracer.update_mesh_rotation(axis=[0, 1, 0], angle=angle)
         #raytracer.update_pose(smpl_data['pose'][frame_idx], smpl_data['shape'][0], np.array(root_translation[frame_idx]) -  body_offset)
         PIR, pc = raytracer.trace()
