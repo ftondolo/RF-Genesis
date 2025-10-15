@@ -191,7 +191,7 @@ def trace(motion_filename=None):
         max_distance = np.max(root_translation[:,2])+2
         total_motion_frames = len(root_translation)
         
-    total_motion_frames = 600
+    total_motion_frames = 200
     max_distance = 2
     
     body_offset = np.array([0,1,3])
