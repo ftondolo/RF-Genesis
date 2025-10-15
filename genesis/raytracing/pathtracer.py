@@ -154,7 +154,7 @@ def get_deafult_scene(res = 512):
 
 
 def trace(motion_filename=None):
-    if not motion_filename:
+    if motion_filename:
         smpl_data = np.load(motion_filename, allow_pickle=True)
         root_translation = smpl_data['root_translation']
         max_distance = np.max(root_translation[:,2])+2
