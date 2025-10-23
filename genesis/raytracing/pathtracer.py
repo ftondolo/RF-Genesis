@@ -8,25 +8,16 @@ from tqdm import tqdm
 mi.set_variant('cuda_ad_rgb')
 torch.set_default_device('cuda')
 
+
 class RayTracer:
     def __init__(self) -> None:
         self.PIR_resolution = 128
         self.scene = mi.load_dict(get_deafult_scene(res = self.PIR_resolution))
         self.params_scene = mi.traverse(self.scene)
-        self.body = None #smpl.get_smpl_layer()
+        self.body = smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.base_vertices = self._load_ply_vertices('/content/RF-Genesis/models/trihedral.ply')
-    
-    def _load_ply_vertices(self, ply_path):
-        """Load vertices from PLY file"""
-        mesh = mi.load_dict({
-            'type': 'ply',
-            'filename': ply_path
-        })
-        params = mi.traverse(mesh)
-        vertices = params['vertex_positions']
-        return vertices
-        
+
+
     def gen_rays(self):  
         sensor = self.scene.sensors()[0]
         film = sensor.film()
@@ -50,36 +41,8 @@ class RayTracer:
         )
         return rays
     
-    def update_mesh_rotation(self, axis, angle):
-        """Rotate the mesh by applying transform to base vertices"""
-        # Create rotation transform
-        transform = mi.Transform4f.rotate(axis=axis, angle=angle)
-        
-        # Apply transform to base vertices
-        vertices_flat = dr.ravel(self.base_vertices)
-        num_vertices = len(vertices_flat) // 3
-        
-        # Reshape to (N, 3) for transformation
-        vertices_reshaped = mi.Point3f(
-            vertices_flat[0::3],
-            vertices_flat[1::3],
-            vertices_flat[2::3]
-        )
-        
-        # Apply rotation
-        rotated_vertices = transform @ vertices_reshaped
-        
-        # Update scene
-        self.params_scene['smpl.vertex_positions'] = dr.ravel(rotated_vertices)
-        self.params_scene.update()
-    
     def update_pose(self,pose_params, shape_params, translation= None):
-        if pose_params is None:  # Skip SMPL, just apply transform
-            if translation is not None:
-                transform = mi.Transform4f.translate(translation)
-                self.params_scene['smpl.to_world'] = transform
-                self.params_scene.update()
-            return
+        
         pose_params = torch.tensor(pose_params).view(1, -1)
         shape_params = torch.tensor(shape_params).view(1, -1)
 
@@ -92,7 +55,7 @@ class RayTracer:
         
         self.params_scene['smpl.vertex_positions'] = dr.ravel(vertices_mi)
         self.params_scene.update()
-        
+    
     def update_sensor(self,origin, target):
         transform = mi.Transform4f.look_at(
                             origin=origin,
@@ -102,7 +65,31 @@ class RayTracer:
         self.params_scene['sensor.to_world'] = transform
         self.params_scene['tx.to_world'] = transform
         self.params_scene.update()
-    
+
+    def update_mesh_rotation(self, axis=[0, 1, 0], angle=0):
+        """
+        Rotate the mesh around a given axis by a given angle.
+
+        Args:
+            axis: Rotation axis as [x, y, z]
+            angle: Rotation angle in degrees
+        """
+        # Get current vertices from the scene
+        current_vertices = self.params_scene['smpl.vertex_positions']
+
+        # Reshape vertices to (N, 3) format
+        vertices_flat = dr.unravel(mi.Point3f, current_vertices)
+
+        # Create rotation transform
+        rotation_transform = mi.Transform4f.rotate(axis=axis, angle=angle)
+
+        # Apply rotation to vertices
+        rotated_vertices = rotation_transform @ vertices_flat
+
+        # Update the scene with rotated vertices
+        self.params_scene['smpl.vertex_positions'] = dr.ravel(rotated_vertices)
+        self.params_scene.update()
+
     def trace(self):
         ray = self.gen_rays()
         si = self.scene.ray_intersect(ray)                   # ray intersection
@@ -184,28 +171,34 @@ def get_deafult_scene(res = 512):
 
 
 
-def trace(motion_filename=None):
-    if motion_filename:
-        smpl_data = np.load(motion_filename, allow_pickle=True)
-        root_translation = smpl_data['root_translation']
-        max_distance = np.max(root_translation[:,2])+2
-        total_motion_frames = len(root_translation)
-        
-    total_motion_frames = 200
-    max_distance = 2
-    
-    body_offset = np.array([0,1,3])
+def trace(motion_filename=None, rotation_axis=None, angle=4):
+    """
+    Trace rays through SMPL body motion sequence.
+
+    Args:
+        motion_filename: Path to .npz file containing SMPL motion data
+        rotation_axis: Optional axis for mesh rotation [x, y, z]
+        rotation_angles: Optional list of rotation angles (in degrees) for each frame
+
+    Returns:
+        PIRs: List of PIR tensors
+        pointclouds: List of pointcloud tensors
+    """
+    #smpl_data = np.load(motion_filename, allow_pickle=True)
+    #root_translation = smpl_data['root_translation']
+    #max_distance = np.max(root_translation[:,2])+2
+    #body_offset = np.array([0,1,3])
     sensor_origin = np.array([0,0,0])
     sensor_target = np.array([0,0,-5])
 
     raytracer = RayTracer()
     PIRs = []
     pointclouds = []
+    total_motion_frames = 200
 
-    for frame_idx in tqdm(range(0, total_motion_frames),desc="Rendering PLY PIRs"):
-        angle = frame_idx * 1.8  
-        raytracer.update_mesh_rotation(axis=[0, 1, 0], angle=angle)
-        #raytracer.update_pose(smpl_data['pose'][frame_idx], smpl_data['shape'][0], np.array(root_translation[frame_idx]) -  body_offset)
+    for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering PIRs"):
+        raytracer.update_mesh_rotation(axis=rotation_axis, angle=angle)
+
         PIR, pc = raytracer.trace()
         PIRs.append(torch.from_numpy(PIR).cuda())
         pointclouds.append(torch.from_numpy(pc).cuda())
