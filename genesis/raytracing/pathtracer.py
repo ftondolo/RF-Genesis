@@ -14,7 +14,7 @@ class RayTracer:
         self.PIR_resolution = 128
         self.scene = mi.load_dict(get_deafult_scene(res = self.PIR_resolution))
         self.params_scene = mi.traverse(self.scene)
-        self.body = smpl.get_smpl_layer()
+        self.body = None
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -65,27 +65,87 @@ class RayTracer:
         self.params_scene['sensor.to_world'] = transform
         self.params_scene['tx.to_world'] = transform
         self.params_scene.update()
-    
-    
+
+    def update_mesh_rotation(self, axis=[0, 1, 0], angle=0):
+        """
+        Rotate the mesh around a given axis by a given angle.
+
+        Args:
+            axis: Rotation axis as [x, y, z]
+            angle: Rotation angle in degrees
+        """
+        # Get current vertices from the scene (flat buffer: x1,y1,z1,x2,y2,z2,...)
+        current_vertices = self.params_scene['smpl.vertex_positions']
+
+        # Convert to numpy for easier manipulation
+        vertices_np = np.array(current_vertices).reshape(-1, 3)
+
+        # Create rotation matrix from axis and angle
+        rotation_transform = mi.Transform4f.rotate(axis=axis, angle=angle)
+        rotation_matrix = np.array(rotation_transform.matrix)[:3, :3]
+
+        # Apply rotation to each vertex
+        rotated_vertices_np = vertices_np @ rotation_matrix.T
+
+        # Convert back to flat buffer format
+        rotated_flat = rotated_vertices_np.flatten()
+
+        # Convert back to DrJit array with same type as original
+        self.params_scene['smpl.vertex_positions'] = type(current_vertices)(rotated_flat)
+        self.params_scene.update()
 
     def trace(self):
         ray = self.gen_rays()
         si = self.scene.ray_intersect(ray)                   # ray intersection
         intensity = mi.render(self.scene,spp=32)
-        t= si.t
+
+        # Ensure DrJit arrays are evaluated before conversion
+        dr.eval(si.t)
+        dr.eval(si.p)
+
+        # Convert to numpy and handle the flattened array
+        t = np.array(si.t, copy=False)
+        pointclouds = np.array(si.p, copy=False)
+
+        # Check if we got the expected number of samples
+        expected_size = self.PIR_resolution * self.PIR_resolution
+        if t.size != expected_size:
+            print(f"Warning: Expected {expected_size} samples but got {t.size}")
+            # If t is scalar, broadcast it to the expected size
+            if t.size == 1:
+                t = np.full(expected_size, t.item())
+
+            # Also fix pointclouds shape if needed
+            if pointclouds.size == 3:  # Single point (x, y, z)
+                # Create a default pointcloud array with zeros
+                pointclouds = np.zeros((expected_size, 3), dtype=pointclouds.dtype)
+
+        # Ensure pointclouds is reshaped correctly
+        if pointclouds.ndim == 1 and pointclouds.size == expected_size * 3:
+            pointclouds = pointclouds.reshape(expected_size, 3)
+        elif pointclouds.shape[0] != expected_size:
+            print(f"Warning: Pointcloud shape mismatch. Expected ({expected_size}, 3) but got {pointclouds.shape}")
+            pointclouds = np.zeros((expected_size, 3), dtype=pointclouds.dtype)
+
         t[t>9999]=0
-        distance = np.array(t).reshape(self.PIR_resolution,self.PIR_resolution)
+        distance = t.reshape(self.PIR_resolution,self.PIR_resolution)
         intensity = np.array(intensity)[:,:,0]
-        velocity = np.zeros((self.PIR_resolution,self.PIR_resolution))  # the velocity is zero for this static frame, 
+        velocity = np.zeros((self.PIR_resolution,self.PIR_resolution))  # the velocity is zero for this static frame,
                                                                         # but will be calculated later by calculating the difference between two frames
-        
+
         PIR = np.stack([distance,intensity,velocity],axis=2)
-        pointclouds = np.array(si.p)        # We save the points here for faster calculation, it can be calculated from the PIR's distance + sensor's intrinsic metrix
         return PIR, pointclouds
     
 
 
 def get_deafult_scene(res = 512):
+    import os
+
+    # Get the absolute path to the models directory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(os.path.dirname(current_dir))
+    ply_path = os.path.join(project_root, 'models', 'trihedral.ply')
+
     integrator = mi.load_dict({
         'type': 'direct',
         })
@@ -93,8 +153,8 @@ def get_deafult_scene(res = 512):
     sensor = mi.load_dict({
             'type': 'perspective',
             'to_world': T.look_at(
-                            origin=(0, 1, 3),
-                            target=(0, 1, 0),
+                            origin=(0, 0, 3),
+                            target=(0, 0, 0),
                             up=(0, 1, 0)
                         ),
             'fov': 60,
@@ -119,14 +179,14 @@ def get_deafult_scene(res = 512):
             'type': 'scene',
             'integrator': integrator,
             'sensor': sensor,
-            
+
             'while':{
                 'type':'diffuse',
-                'reflectance': { 'type': 'rgb', 'value': (0.8, 0.8, 0.8) }, 
+                'reflectance': { 'type': 'rgb', 'value': (0.8, 0.8, 0.8) },
             },
             'smpl':{
                 'type': 'ply',
-                'filename': '../models/male.ply',
+                'filename': ply_path,
                 "mybsdf": {
                     "type": "ref",
                     "id": "while"
@@ -149,21 +209,34 @@ def get_deafult_scene(res = 512):
 
 
 
-def trace(motion_filename):
-    smpl_data = np.load(motion_filename, allow_pickle=True)
-    root_translation = smpl_data['root_translation']
-    max_distance = np.max(root_translation[:,2])+2
-    body_offset = np.array([0,1,3])
+def trace(motion_filename=None, rotation_axis=[0, 1, 0], angle=3.6):
+    """
+    Trace rays through SMPL body motion sequence.
+
+    Args:
+        motion_filename: Path to .npz file containing SMPL motion data
+        rotation_axis: Optional axis for mesh rotation [x, y, z]
+        rotation_angles: Optional list of rotation angles (in degrees) for each frame
+
+    Returns:
+        PIRs: List of PIR tensors
+        pointclouds: List of pointcloud tensors
+    """
+    #smpl_data = np.load(motion_filename, allow_pickle=True)
+    #root_translation = smpl_data['root_translation']
+    #max_distance = np.max(root_translation[:,2])+2
+    #body_offset = np.array([0,1,3])
     sensor_origin = np.array([0,0,0])
     sensor_target = np.array([0,0,-5])
 
     raytracer = RayTracer()
     PIRs = []
     pointclouds = []
-    total_motion_frames = len(root_translation)
+    total_motion_frames = 200
 
-    for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering Body PIRs"):
-        raytracer.update_pose(smpl_data['pose'][frame_idx], smpl_data['shape'][0], np.array(root_translation[frame_idx]) -  body_offset)
+    for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering PIRs"):
+        raytracer.update_mesh_rotation(axis=rotation_axis, angle=angle)
+
         PIR, pc = raytracer.trace()
         PIRs.append(torch.from_numpy(PIR).cuda())
         pointclouds.append(torch.from_numpy(pc).cuda())
