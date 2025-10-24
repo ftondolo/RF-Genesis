@@ -152,7 +152,7 @@ def get_deafult_scene(res = 512):
                 'to_world' : T.translate([0, 0, 0]),
                 "mybsdf": {
                     "type": "ref",
-                    "id": "white"
+                    "id": "while"
                 },
             },
 
