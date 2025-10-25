@@ -16,7 +16,8 @@ class RayTracer:
         self.params_scene = mi.traverse(self.scene)
         self.body = None #smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+        self.axis = [0, 1, 0]
+        self.angle = 3.6
 
     def gen_rays(self):  
         sensor = self.scene.sensors()[0]
@@ -66,7 +67,7 @@ class RayTracer:
         self.params_scene['tx.to_world'] = transform
         self.params_scene.update()
 
-    def update_mesh_rotation(self, axis=[0, 1, 0], angle=0):
+    def update_mesh_rotation(self, axis=[0, 1, 0], angle=3.6):
         """
         Rotate the mesh around a given axis by a given angle.
 
@@ -77,17 +78,19 @@ class RayTracer:
         # Get current vertices from the scene
         current_vertices = self.params_scene['smpl.vertex_positions']
 
-        # Reshape vertices to (N, 3) format
-        vertices_flat = dr.unravel(mi.Point3f, current_vertices)
+        # Convert to numpy and reshape to (N, 3) format
+        vertices_np = np.array(current_vertices).reshape(-1, 3)
 
-        # Create rotation transform
+        # Create rotation transform and extract matrix
         rotation_transform = mi.Transform4f.rotate(axis=axis, angle=angle)
+        rotation_matrix = np.array(rotation_transform.matrix)[:3, :3]
 
-        # Apply rotation to vertices
-        rotated_vertices = rotation_transform @ vertices_flat
+        # Apply rotation in numpy
+        rotated_vertices = vertices_np @ rotation_matrix.T
 
-        # Update the scene with rotated vertices
-        self.params_scene['smpl.vertex_positions'] = dr.ravel(rotated_vertices)
+        # Convert back to mitsuba format
+        vertices_mi = mi.TensorXf(rotated_vertices)
+        self.params_scene['smpl.vertex_positions'] = dr.ravel(vertices_mi)
         self.params_scene.update()
 
     def trace(self):
@@ -172,7 +175,7 @@ def get_deafult_scene(res = 512):
 
 
 
-def trace(motion_filename=None, rotation_axis=None, angle=4):
+def trace(motion_filename=None, rotation_axis=[0,1,0], angle=3.6):
     """
     Trace rays through SMPL body motion sequence.
 
