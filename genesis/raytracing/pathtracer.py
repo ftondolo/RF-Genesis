@@ -19,27 +19,46 @@ class RayTracer:
         self.axis = [0, 1, 0]
         self.angle = 3.6
 
-    def gen_rays(self):  
+    def gen_rays(self):
+        """Generate rays for all pixels in the film"""
+        import drjit as dr
+        
         sensor = self.scene.sensors()[0]
         film = sensor.film()
         sampler = sensor.sampler()
         film_size = film.crop_size()
-        spp = 1
-        total_sample_count = dr.prod(film_size) * spp
-        if sampler.wavefront_size() != total_sample_count:
-            sampler.seed(0, total_sample_count)
-
-        pos = dr.arange(mi.UInt32, total_sample_count)
-        pos //= spp
-        scale = mi.Vector2f(1.0 / film_size[0], 1.0 / film_size[1])
-        pos = mi.Vector2f(mi.Float(pos  % int(film_size[0])),
-                    mi.Float(pos // int(film_size[0])))
-        rays, weights = sensor.sample_ray_differential(
-            time=0,
-            sample1=sampler.next_1d(),
-            sample2=pos * scale,
-            sample3=0
+        
+        # Total number of pixels
+        pixel_count = int(film_size[0] * film_size[1])
+        
+        # Seed sampler
+        sampler.seed(0, pixel_count)
+        
+        # Generate pixel indices
+        idx = dr.arange(mi.UInt32, pixel_count)
+        
+        # Convert to 2D coordinates
+        x = idx % int(film_size[0])
+        y = idx // int(film_size[0])
+        
+        # Normalize to [0,1] and add 0.5 to sample pixel centers
+        pos = mi.Point2f(
+            (mi.Float(x) + 0.5) / film_size[0],
+            (mi.Float(y) + 0.5) / film_size[1]
         )
+        
+        # Sample rays - the result is already a ray bundle, not a tuple
+        rays = sensor.sample_ray(
+            time=sampler.next_1d(),
+            sample1=sampler.next_1d(), 
+            sample2=pos,
+            sample3=sampler.next_1d()
+        )
+        
+        # Check if it's returning a tuple and extract rays if needed
+        if isinstance(rays, tuple):
+            rays = rays[0]
+        
         return rays
     
     def update_pose(self,pose_params, shape_params, translation= None):
@@ -91,17 +110,27 @@ class RayTracer:
 
     def trace(self):
         ray = self.gen_rays()
-        si = self.scene.ray_intersect(ray)                   # ray intersection
-        intensity = mi.render(self.scene,spp=32)
-        t= si.t
-        t[t>9999]=0
-        distance = np.array(t).reshape(self.PIR_resolution,self.PIR_resolution)
-        intensity = np.array(intensity)[:,:,0]
-        velocity = np.zeros((self.PIR_resolution,self.PIR_resolution))  # the velocity is zero for this static frame, 
-                                                                        # but will be calculated later by calculating the difference between two frames
+        si = self.scene.ray_intersect(ray)
         
-        PIR = np.stack([distance,intensity,velocity],axis=2)
-        pointclouds = np.array(si.p)        # We save the points here for faster calculation, it can be calculated from the PIR's distance + sensor's intrinsic metrix
+        # Debug: Check the size of the intersection results
+        t_array = np.array(si.t)
+        print(f"Debug: t_array shape = {t_array.shape}, expected = ({self.PIR_resolution*self.PIR_resolution},)")
+        
+        if t_array.size == 1:
+            print("Error: Only got a single intersection value. Ray generation failed.")
+            # Return zeros as fallback
+            return np.zeros((self.PIR_resolution, self.PIR_resolution, 3)), np.zeros((self.PIR_resolution*self.PIR_resolution, 3))
+        
+        # Continue with normal processing
+        t_array[t_array > 9999] = 0
+        distance = t_array.reshape(self.PIR_resolution, self.PIR_resolution)
+        
+        intensity = mi.render(self.scene, spp=32)
+        intensity = np.array(intensity)[:, :, 0]
+        velocity = np.zeros((self.PIR_resolution, self.PIR_resolution))
+        
+        PIR = np.stack([distance, intensity, velocity], axis=2)
+        pointclouds = np.array(si.p)
         return PIR, pointclouds
     
 
