@@ -67,19 +67,23 @@ def draw_poinclouds_on_axis(pc,ax, tx,rx,elev,azim,title):
 
 def draw_ply_mesh_on_axis(vertices, faces, ax, elev, azim, title, frame_idx):
     """Draw the PLY mesh with rotation applied - synced with pathtracer.py logic"""
-    # Apply rotation matching pathtracer.py: angle = frame_idx * 1.8
-    angle = frame_idx * 1.8
-    rotated_vertices = rotate_vertices(vertices, [0, 1, 0], angle)
-    
+    # Convert radar frame index to optical frame index
+    # Pathtracer: 200 frames at 30 FPS, rotates 3.6° per frame
+    # Radar: ~67 frames at 10 FPS
+    # Mapping: optical_frame = radar_frame * (30 FPS / 10 FPS) = radar_frame * 3
+    optical_frame_idx = frame_idx * 3
+    cumulative_angle = optical_frame_idx * 3.6
+    rotated_vertices = rotate_vertices(vertices, [0, 1, 0], cumulative_angle)
+
     # Create mesh collection
     mesh = []
     for face in faces:
         triangle = rotated_vertices[face]
         mesh.append(triangle)
-    
+
     collection = Poly3DCollection(mesh, alpha=0.7, facecolor='cyan', edgecolor='black', linewidths=0.1)
     ax.add_collection3d(collection)
-    
+
     # Set axis limits to show the mesh properly
     ax.set_xlim(-1, 1)
     ax.set_ylim(-1, 1)
@@ -87,6 +91,9 @@ def draw_ply_mesh_on_axis(vertices, faces, ax, elev, azim, title, frame_idx):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+
+    # Set view to match pathtracer camera: origin=(0, 2, 4), target=(0, 0, 0)
+    # This corresponds to viewing from above and slightly to the side
     ax.view_init(elev=elev, azim=azim)
     ax.set_title(title, fontsize=16)
 
