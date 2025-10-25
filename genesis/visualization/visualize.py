@@ -79,7 +79,7 @@ def draw_ply_mesh_on_axis(vertices, faces, ax, elev, azim, title, frame_idx):
     # Mapping: optical_frame = radar_frame * (30 FPS / 10 FPS) = radar_frame * 3
     optical_frame_idx = frame_idx * 3
     cumulative_angle = optical_frame_idx * 3.6
-    rotated_vertices = rotate_vertices(vertices, [0, 1, 0], cumulative_angle)
+    rotated_vertices = rotate_vertices(vertices, [0, 0, 1], cumulative_angle)
 
     # Create mesh collection
     mesh = []
