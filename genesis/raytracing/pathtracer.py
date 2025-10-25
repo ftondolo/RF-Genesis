@@ -68,28 +68,19 @@ class RayTracer:
         self.params_scene.update()
 
     def update_mesh_rotation(self, axis=[0, 1, 0], angle=3.6):
-        """
-        Rotate the mesh around a given axis by a given angle.
+        # Get current vertices
+        vertices = self.params_scene['smpl.vertex_positions']
 
-        Args:
-            axis: Rotation axis as [x, y, z]
-            angle: Rotation angle in degrees
-        """
-        # Get current vertices from the scene
-        current_vertices = self.params_scene['smpl.vertex_positions']
+        # Apply rotation
+        ones = torch.ones(vertices.shape[0], 1)
+        homogeneous_vertices = torch.cat([vertices, ones], dim=1)
+        transform = mi.Transform4f.rotate(axis=axis, angle=angle)
+        rotation_matrix = torch.tensor(transform.matrix).squeeze()
+        transformed_vertices = torch.matmul(homogeneous_vertices, rotation_matrix.T) 
+        transformed_vertices_3d = transformed_vertices[:, :3]
+        vertices_mi=mi.TensorXf(transformed_vertices_3d.cpu().numpy())
 
-        # Convert to numpy and reshape to (N, 3) format
-        vertices_np = np.array(current_vertices).reshape(-1, 3)
-
-        # Create rotation transform and extract matrix
-        rotation_transform = mi.Transform4f.rotate(axis=axis, angle=angle)
-        rotation_matrix = np.array(rotation_transform.matrix)[:3, :3]
-
-        # Apply rotation in numpy
-        rotated_vertices = vertices_np @ rotation_matrix.T
-
-        # Convert back to mitsuba format
-        vertices_mi = mi.TensorXf(rotated_vertices)
+        # Update scene
         self.params_scene['smpl.vertex_positions'] = dr.ravel(vertices_mi)
         self.params_scene.update()
 
@@ -97,6 +88,7 @@ class RayTracer:
         ray = self.gen_rays()
         si = self.scene.ray_intersect(ray)                   # ray intersection
         intensity = mi.render(self.scene,spp=32)
+        dr.eval(si.t)
         t= si.t
         t[t>9999]=0
         distance = np.array(t).reshape(self.PIR_resolution,self.PIR_resolution)
