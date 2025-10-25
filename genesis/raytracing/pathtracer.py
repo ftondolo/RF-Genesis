@@ -1,44 +1,81 @@
 import drjit as dr
-import mitsuba as mi
-from mitsuba.scalar_rgb import Transform4f as T
 import numpy as np
 from . import smpl
 import torch
 from tqdm import tqdm
+import mitsuba as mi
+
+# Import scalar Transform4f for scene definition
+from mitsuba.scalar_rgb import Transform4f as T
+
+# IMPORTANT: Set variant AFTER all imports
+# Importing from mitsuba.scalar_rgb switches the variant, so we must reset it
 mi.set_variant('cuda_ad_rgb')
 torch.set_default_device('cuda')
 
 
 class RayTracer:
     def __init__(self) -> None:
+        # Force cuda variant right before scene loading
+        mi.set_variant('cuda_ad_rgb')
+
         self.PIR_resolution = 128
         self.scene = mi.load_dict(get_deafult_scene(res = self.PIR_resolution))
         self.params_scene = mi.traverse(self.scene)
         self.body = None
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+        # Store original vertices to avoid accumulation
+        original_verts = self.params_scene['smpl.vertex_positions']
+        dr.eval(original_verts)
+        self.original_vertices = np.array(dr.detach(original_verts)).copy()
 
-    def gen_rays(self):  
+        self.body = None #smpl.get_smpl_layer()
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.axis = [0, 1, 0]
+        self.angle = 3.6
+        self.cumulative_angle = 0.0  # Track cumulative rotation
+
+    def gen_rays(self):
+        """Generate rays for all pixels in the film"""
+        import drjit as dr
+        
         sensor = self.scene.sensors()[0]
         film = sensor.film()
         sampler = sensor.sampler()
         film_size = film.crop_size()
-        spp = 1
-        total_sample_count = dr.prod(film_size) * spp
-        if sampler.wavefront_size() != total_sample_count:
-            sampler.seed(0, total_sample_count)
-
-        pos = dr.arange(mi.UInt32, total_sample_count)
-        pos //= spp
-        scale = mi.Vector2f(1.0 / film_size[0], 1.0 / film_size[1])
-        pos = mi.Vector2f(mi.Float(pos  % int(film_size[0])),
-                    mi.Float(pos // int(film_size[0])))
-        rays, weights = sensor.sample_ray_differential(
-            time=0,
-            sample1=sampler.next_1d(),
-            sample2=pos * scale,
-            sample3=0
+        
+        # Total number of pixels
+        pixel_count = int(film_size[0] * film_size[1])
+        
+        # Seed sampler
+        sampler.seed(0, pixel_count)
+        
+        # Generate pixel indices
+        idx = dr.arange(mi.UInt32, pixel_count)
+        
+        # Convert to 2D coordinates
+        x = idx % int(film_size[0])
+        y = idx // int(film_size[0])
+        
+        # Normalize to [0,1] and add 0.5 to sample pixel centers
+        pos = mi.Point2f(
+            (mi.Float(x) + 0.5) / film_size[0],
+            (mi.Float(y) + 0.5) / film_size[1]
         )
+        
+        # Sample rays - the result is already a ray bundle, not a tuple
+        rays = sensor.sample_ray(
+            time=sampler.next_1d(),
+            sample1=sampler.next_1d(), 
+            sample2=pos,
+            sample3=sampler.next_1d()
+        )
+        
+        # Check if it's returning a tuple and extract rays if needed
+        if isinstance(rays, tuple):
+            rays = rays[0]
+        
         return rays
     
     def update_pose(self,pose_params, shape_params, translation= None):
@@ -197,7 +234,7 @@ def get_deafult_scene(res = 512):
                 'type': 'spot',
                 'cutoff_angle': 40,
                 'to_world': T.look_at(
-                                origin=(0, 0, 3),
+                                origin=(2, 3, 4),
                                 target=(0, 0, 0),
                                 up=(0, 1, 0)
                             ),
