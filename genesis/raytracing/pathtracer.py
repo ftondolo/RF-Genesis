@@ -1,23 +1,38 @@
 import drjit as dr
-import mitsuba as mi
-from mitsuba.scalar_rgb import Transform4f as T
 import numpy as np
 from . import smpl
 import torch
 from tqdm import tqdm
+import mitsuba as mi
+
+# Import scalar Transform4f for scene definition
+from mitsuba.scalar_rgb import Transform4f as T
+
+# IMPORTANT: Set variant AFTER all imports
+# Importing from mitsuba.scalar_rgb switches the variant, so we must reset it
 mi.set_variant('cuda_ad_rgb')
 torch.set_default_device('cuda')
 
 
 class RayTracer:
     def __init__(self) -> None:
+        # Force cuda variant right before scene loading
+        mi.set_variant('cuda_ad_rgb')
+
         self.PIR_resolution = 128
         self.scene = mi.load_dict(get_deafult_scene(res = self.PIR_resolution))
         self.params_scene = mi.traverse(self.scene)
+
+        # Store original vertices to avoid accumulation
+        original_verts = self.params_scene['smpl.vertex_positions']
+        dr.eval(original_verts)
+        self.original_vertices = np.array(dr.detach(original_verts)).copy()
+
         self.body = None #smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.axis = [0, 1, 0]
         self.angle = 3.6
+        self.cumulative_angle = 0.0  # Track cumulative rotation
 
     def gen_rays(self):
         """Generate rays for all pixels in the film"""
@@ -87,48 +102,41 @@ class RayTracer:
         self.params_scene.update()
 
     def update_mesh_rotation(self, axis=[0, 1, 0], angle=3.6):
-        # Get current vertices and convert to match th_verts format
-        vertices_flat = self.params_scene['smpl.vertex_positions']
-        vertices_np = np.array(vertices_flat).reshape(-1, 3)
-        vertices = torch.from_numpy(vertices_np).float().cuda()  
-        if len(vertices.shape)==3:
-            if vertices.shape[0]==1:
-                vertices=vertices[0]
+        # Update cumulative rotation angle
+        self.cumulative_angle += angle
 
-        # Apply rotation
-        ones = torch.ones(vertices.shape[0], 1).cuda()
-        homogeneous_vertices = torch.cat([vertices, ones], dim=1)
-        transform = mi.Transform4f.rotate(axis=axis, angle=angle)
-        rotation_matrix = torch.from_numpy(np.array(transform.matrix)).float().cuda()
-        transformed_vertices = torch.matmul(homogeneous_vertices, rotation_matrix.T)
-        transformed_vertices_3d = transformed_vertices[:, :3]
-        vertices_mi = mi.TensorXf(transformed_vertices_3d.cpu().numpy())
+        # Start from original vertices (prevents accumulation)
+        vertices_np = self.original_vertices.reshape(-1, 3)
+
+        # Create rotation matrix with cumulative angle
+        rotation_transform = mi.Transform4f.rotate(axis=axis, angle=self.cumulative_angle)
+        rotation_matrix = np.array(rotation_transform.matrix)[:3, :3]
+
+        # Apply rotation to original vertices
+        rotated_vertices = vertices_np @ rotation_matrix.T
+
+        # Flatten and convert back to DrJit array
+        rotated_flat = rotated_vertices.flatten()
+
+        # Create new DrJit array - use dr.cuda.ad.Float to match the variant
+        from drjit.cuda.ad import Float as CudaFloat
+        result = CudaFloat(rotated_flat)
 
         # Update scene
-        self.params_scene['smpl.vertex_positions'] = dr.ravel(vertices_mi)
+        self.params_scene['smpl.vertex_positions'] = result
         self.params_scene.update()
 
     def trace(self):
         ray = self.gen_rays()
         si = self.scene.ray_intersect(ray)
-        
-        # Debug: Check the size of the intersection results
-        t_array = np.array(si.t)
-        print(f"Debug: t_array shape = {t_array.shape}, expected = ({self.PIR_resolution*self.PIR_resolution},)")
-        
-        if t_array.size == 1:
-            print("Error: Only got a single intersection value. Ray generation failed.")
-            # Return zeros as fallback
-            return np.zeros((self.PIR_resolution, self.PIR_resolution, 3)), np.zeros((self.PIR_resolution*self.PIR_resolution, 3))
-        
-        # Continue with normal processing
-        t_array[t_array > 9999] = 0
-        distance = t_array.reshape(self.PIR_resolution, self.PIR_resolution)
-        
         intensity = mi.render(self.scene, spp=32)
+
+        t = np.array(si.t)
+        t[t > 9999] = 0
+        distance = t.reshape(self.PIR_resolution, self.PIR_resolution)
         intensity = np.array(intensity)[:, :, 0]
         velocity = np.zeros((self.PIR_resolution, self.PIR_resolution))
-        
+
         PIR = np.stack([distance, intensity, velocity], axis=2)
         pointclouds = np.array(si.p)
         return PIR, pointclouds
