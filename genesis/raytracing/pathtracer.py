@@ -68,17 +68,22 @@ class RayTracer:
         self.params_scene.update()
 
     def update_mesh_rotation(self, axis=[0, 1, 0], angle=3.6):
-        # Get current vertices
-        vertices = self.params_scene['smpl.vertex_positions']
+        # Get current vertices and convert to match th_verts format
+        vertices_flat = self.params_scene['smpl.vertex_positions']
+        vertices_np = np.array(vertices_flat).reshape(-1, 3)
+        vertices = torch.from_numpy(vertices_np).float().cuda()  
+        if len(vertices.shape)==3:
+            if vertices.shape[0]==1:
+                vertices=vertices[0]
 
         # Apply rotation
-        ones = torch.ones(vertices.shape[0], 1)
+        ones = torch.ones(vertices.shape[0], 1).cuda()
         homogeneous_vertices = torch.cat([vertices, ones], dim=1)
         transform = mi.Transform4f.rotate(axis=axis, angle=angle)
-        rotation_matrix = torch.tensor(transform.matrix).squeeze()
-        transformed_vertices = torch.matmul(homogeneous_vertices, rotation_matrix.T) 
+        rotation_matrix = torch.from_numpy(np.array(transform.matrix)).float().cuda()
+        transformed_vertices = torch.matmul(homogeneous_vertices, rotation_matrix.T)
         transformed_vertices_3d = transformed_vertices[:, :3]
-        vertices_mi=mi.TensorXf(transformed_vertices_3d.cpu().numpy())
+        vertices_mi = mi.TensorXf(transformed_vertices_3d.cpu().numpy())
 
         # Update scene
         self.params_scene['smpl.vertex_positions'] = dr.ravel(vertices_mi)
@@ -88,7 +93,6 @@ class RayTracer:
         ray = self.gen_rays()
         si = self.scene.ray_intersect(ray)                   # ray intersection
         intensity = mi.render(self.scene,spp=32)
-        dr.eval(si.t)
         t= si.t
         t[t>9999]=0
         distance = np.array(t).reshape(self.PIR_resolution,self.PIR_resolution)
