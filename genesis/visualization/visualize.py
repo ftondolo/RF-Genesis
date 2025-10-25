@@ -7,6 +7,7 @@ import io
 import cv2
 from tqdm import tqdm
 import mitsuba as mi
+from mitsuba.scalar_rgb import Transform4f as T
 
 from genesis.raytracing.radar import Radar 
 from genesis.visualization.pointcloud import PointCloudProcessCFG, frame2pointcloud,rangeFFT,dopplerFFT,process_pc
@@ -15,7 +16,8 @@ mi.set_variant('scalar_rgb')
 
 # Load and cache the PLY mesh
 def load_ply_mesh(ply_path):
-    """Load mesh from PLY file"""
+    """Load mesh from PLY file - matches pathtracer.py loading exactly"""
+    # Load mesh without any transforms (pathtracer doesn't apply scaling)
     mesh = mi.load_dict({
         'type': 'ply',
         'filename': ply_path
@@ -23,6 +25,10 @@ def load_ply_mesh(ply_path):
     params = mi.traverse(mesh)
     vertices = np.array(params['vertex_positions']).reshape(-1, 3)
     faces = np.array(params['faces']).reshape(-1, 3).astype(int)
+
+    # PLY vertices are in millimeters, scale to meters to match scene units
+    vertices = vertices / 1000.0
+
     return vertices, faces
 
 def rotate_vertices(vertices, axis, angle_degrees):
@@ -66,7 +72,7 @@ def draw_poinclouds_on_axis(pc,ax, tx,rx,elev,azim,title):
     ax.set_title(title, fontsize=20)
 
 def draw_ply_mesh_on_axis(vertices, faces, ax, elev, azim, title, frame_idx):
-    """Draw the PLY mesh with rotation applied - synced with pathtracer.py logic"""
+    """Draw the PLY mesh with rotation applied - faithfully matches pathtracer.py rendering"""
     # Convert radar frame index to optical frame index
     # Pathtracer: 200 frames at 30 FPS, rotates 3.6° per frame
     # Radar: ~67 frames at 10 FPS
@@ -84,17 +90,27 @@ def draw_ply_mesh_on_axis(vertices, faces, ax, elev, azim, title, frame_idx):
     collection = Poly3DCollection(mesh, alpha=0.7, facecolor='cyan', edgecolor='black', linewidths=0.1)
     ax.add_collection3d(collection)
 
-    # Set axis limits to show the mesh properly
-    ax.set_xlim(-1, 1)
-    ax.set_ylim(-1, 1)
-    ax.set_zlim(-1, 1)
+    # Calculate appropriate axis limits based on camera FOV and distance
+    # Pathtracer camera: position=(0, 0, 3), target=(0, 0, 0), FOV=60°
+    camera_distance = 3.0
+    fov_degrees = 60.0
+    # At distance=3 with FOV=60°, the view frustum half-width is: 3 * tan(30°)
+    view_half_width = camera_distance * np.tan(np.radians(fov_degrees / 2))
+
+    # Set symmetric limits based on camera view frustum
+    limit = view_half_width * 0.8  # 0.8 factor to add some padding
+    ax.set_xlim(-limit, limit)
+    ax.set_ylim(-limit, limit)
+    ax.set_zlim(-limit, limit)
+
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
 
-    # Set view to match pathtracer camera: origin=(0, 2, 4), target=(0, 0, 0)
-    # This corresponds to viewing from above and slightly to the side
-    ax.view_init(elev=elev, azim=azim)
+    # Set view to approximate pathtracer camera: origin=(0, 0, 3), looking at (0, 0, 0)
+    # Camera is on +Z axis looking towards origin
+    # Use elev=0 (level with XY plane) and azim=0 (looking down -Z axis)
+    ax.view_init(elev=0, azim=0)
     ax.set_title(title, fontsize=16)
 
 def draw_doppler_on_axis(radar_frame,pointcloud_cfg, ax):
@@ -109,17 +125,17 @@ def draw_combined(i,pointcloud_cfg,radar_frames,pointclouds, ply_vertices, ply_f
 
     fig= plt.figure(figsize=(18, 6))
 
-    # Left: Point clouds
+    # Left: PLY mesh (synced with pathtracer rotation)
     ax1 = fig.add_subplot(131, projection='3d')
-    draw_poinclouds_on_axis(pointclouds[radar_frame_id],ax1, None,None,30,-30,"Point Clouds")
+    draw_ply_mesh_on_axis(ply_vertices, ply_faces, ax1, 30, -30, "PLY Mesh (Rotating)", radar_frame_id)
 
     # Middle: Doppler FFT
     ax2 = fig.add_subplot(132)
     draw_doppler_on_axis(radar_frames[radar_frame_id],pointcloud_cfg, ax2)
     
-    # Right: PLY mesh (synced with pathtracer rotation)
+    # Right: Point clouds
     ax3 = fig.add_subplot(133, projection='3d')
-    draw_ply_mesh_on_axis(ply_vertices, ply_faces, ax3, 30, -30, "PLY Mesh (Rotating)", radar_frame_id)
+    draw_poinclouds_on_axis(pointclouds[radar_frame_id],ax3, None,None,30,-30,"Point Clouds")
 
     plt.tight_layout()
     fig.canvas.draw()
