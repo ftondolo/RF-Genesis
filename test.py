@@ -14,8 +14,7 @@ import numpy as np
 import os
 torch.set_default_device('cuda')
 
-if name is None:
-    name = f"output_{int(time.time())}"
+name = f"output_{int(time.time())}"
 
 output_dir = os.path.join("output", name)
 os.makedirs(output_dir, exist_ok=True)
