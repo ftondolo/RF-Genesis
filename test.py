@@ -14,9 +14,6 @@ import numpy as np
 import os
 torch.set_default_device('cuda')
 
-obj_prompt, env_prompt, name = "a corner reflector spinning", "", "test"
-
-
 if name is None:
     name = f"output_{int(time.time())}"
 
