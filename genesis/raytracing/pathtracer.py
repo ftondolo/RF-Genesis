@@ -15,13 +15,12 @@ torch.set_default_device('cuda')
 
 
 class RayTracer:
-    def __init__(self, depth_resolution=256) -> None:
+    def __init__(self) -> None:
         # Force cuda variant right before scene loading
         mi.set_variant('cuda_ad_rgb')
 
         self.PIR_resolution = 128
-        self.depth_resolution = depth_resolution
-        self.scene = mi.load_dict(get_deafult_scene(res=self.PIR_resolution, depth_res=self.depth_resolution))
+        self.scene = mi.load_dict(get_deafult_scene(res=self.PIR_resolution, depth_res=512))
         self.params_scene = mi.traverse(self.scene)
 
         # Store original vertices to avoid accumulation
@@ -210,7 +209,7 @@ class RayTracer:
     
 
 
-def get_deafult_scene(res = 512, depth_res = 256):
+def get_deafult_scene(res = 512):
     integrator = mi.load_dict({
         'type': 'direct',
         })
@@ -251,8 +250,8 @@ def get_deafult_scene(res = 512, depth_res = 256):
             'fov': 60,
             'film': {
                 'type': 'hdrfilm',
-                'width': depth_res,
-                'height': depth_res,
+                'width': res,
+                'height': res,
                 'rfilter': { 'type': 'gaussian' },
                 'sample_border': True,
                 'pixel_format': 'luminance',
@@ -279,7 +278,7 @@ def get_deafult_scene(res = 512, depth_res = 256):
             'smpl':{
                 'type': 'ply',
                 'filename': '/content/RF-Genesis/models/trihedral.ply',
-                'to_world' : T.translate([0, 0, 0]).scale(0.1),
+                'to_world' : T.translate([0, 0, 0]).scale(0.05),
                 "mybsdf": {
                     "type": "ref",
                     "id": "while"
@@ -302,7 +301,7 @@ def get_deafult_scene(res = 512, depth_res = 256):
 
 
 
-def trace(motion_filename=None, rotation_axis=[0,0,1], angle=3.6, depth_resolution=256):
+def trace(motion_filename=None, rotation_axis=[0,0,1], angle=3.6):
     """
     Trace rays through SMPL body motion sequence.
 
@@ -324,7 +323,7 @@ def trace(motion_filename=None, rotation_axis=[0,0,1], angle=3.6, depth_resoluti
     sensor_origin = np.array([0,0,0])
     sensor_target = np.array([0,0,-5])
 
-    raytracer = RayTracer(depth_resolution=depth_resolution)
+    raytracer = RayTracer()
     PIRs = []
     pointclouds = []
     depth_pointclouds = []
