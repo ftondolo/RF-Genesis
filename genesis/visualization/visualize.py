@@ -13,7 +13,7 @@ from genesis.raytracing.radar import Radar
 from genesis.visualization.pointcloud import PointCloudProcessCFG, frame2pointcloud,rangeFFT,dopplerFFT,process_pc
 
 
-def draw_depth_pointcloud(depth_pc, ax, elev=30, azim=30):
+def draw_depth_pointcloud(depth_pc, ax, elev, azim):
     if len(depth_pc) == 0:
         ax.text(0, 0, 0, 'No valid points', fontsize=12)
         return ax
@@ -62,7 +62,7 @@ def draw_combined(i, pointcloud_cfg, radar_frames, radar_pointclouds, depth_poin
     fig = plt.figure(figsize=(12, 6))
 
     ax1 = fig.add_subplot(131, projection='3d')
-    draw_depth_pointcloud(depth_pointclouds[radar_frame_id], ax1, elev=30, azim=30)
+    draw_depth_pointcloud(depth_pointclouds[radar_frame_id], ax1, elev=30, azim=-30)
 
     ax2 = fig.add_subplot(132, projection='3d')
     draw_poinclouds_on_axis(radar_pointclouds[radar_frame_id], ax2, None, None, 30, -30, "Radar Pointcloud")
