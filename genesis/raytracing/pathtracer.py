@@ -20,7 +20,7 @@ class RayTracer:
         mi.set_variant('cuda_ad_rgb')
 
         self.PIR_resolution = 128
-        self.scene = mi.load_dict(get_deafult_scene(res=self.PIR_resolution, depth_res=512))
+        self.scene = mi.load_dict(get_deafult_scene(res=self.PIR_resolution))
         self.params_scene = mi.traverse(self.scene)
 
         # Store original vertices to avoid accumulation
