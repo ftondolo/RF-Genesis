@@ -218,8 +218,8 @@ def get_deafult_scene(res):
     sensor = mi.load_dict({
             'type': 'perspective',
             'to_world': T.look_at(
-                            origin=(0, 2, 4),
-                            target=(0, 0, 0),
+                            origin=(0, 1, 0),
+                            target=(0, 1, 0),
                             up=(0, 1, 0)
                         ),
             'fov': 60,
@@ -243,8 +243,8 @@ def get_deafult_scene(res):
     depth_sensor = mi.load_dict({
             'type': 'perspective',
             'to_world': T.look_at(
-                            origin=(0, 2, 4),
-                            target=(0, 0, 0),
+                            origin=(0, 1, 0),
+                            target=(0, 1, 0),
                             up=(0, 1, 0)
                         ),
             'fov': 60,
@@ -278,7 +278,7 @@ def get_deafult_scene(res):
             'smpl':{
                 'type': 'ply',
                 'filename': '/content/RF-Genesis/models/trihedral.ply',
-                'to_world' : T.translate([0, 0, 0]),
+                'to_world' : T.scale(1),#translate([0, 0, 0]),
                 "mybsdf": {
                     "type": "ref",
                     "id": "while"
@@ -289,7 +289,7 @@ def get_deafult_scene(res):
                 'type': 'spot',
                 'cutoff_angle': 40,
                 'to_world': T.look_at(
-                                origin=(2, 3, 4),
+                                origin=(0, 0, 0),
                                 target=(0, 0, 0),
                                 up=(0, 1, 0)
                             ),
