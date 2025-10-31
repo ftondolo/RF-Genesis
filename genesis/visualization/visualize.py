@@ -25,8 +25,8 @@ def draw_depth_pointcloud(depth_pc, ax, elev, azim):
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     ax.set_xlim(-2, 2)
-    ax.set_ylim(-0, 6)
-    ax.set_zlim(-0.5, 2)
+    ax.set_ylim(-2, 2)
+    ax.set_zlim(0, 2)
     ax.view_init(elev=elev, azim=azim)
     ax.set_title('Depth Pointcloud', fontsize=20)
     return ax
@@ -40,8 +40,8 @@ def draw_poinclouds_on_axis(pc,ax, tx,rx,elev,azim,title):
     if rx is not None:
         ax.scatter(rx[:,0], rx[:,2], rx[:,1], c="orange", s= 50, marker =',', cmap=plt.hot())
     ax.set_xlim(-2, 2)
-    ax.set_ylim(-0, 6)
-    ax.set_zlim(-0.5, 2)
+    ax.set_ylim(-0, 2)
+    ax.set_zlim(0, 2)
     ax.set_xlabel('X')
     ax.set_ylabel('Z')
     ax.set_zlabel('Y')
