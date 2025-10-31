@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
@@ -62,10 +61,10 @@ def draw_combined(i, pointcloud_cfg, radar_frames, radar_pointclouds, depth_poin
     fig = plt.figure(figsize=(12, 6))
 
     ax1 = fig.add_subplot(131, projection='3d')
-    draw_depth_pointcloud(depth_pointclouds[radar_frame_id], ax1, elev=30, azim=-30)
+    draw_depth_pointcloud(depth_pointclouds[radar_frame_id], ax1, elev=30, azim=240)
 
     ax2 = fig.add_subplot(132, projection='3d')
-    draw_poinclouds_on_axis(radar_pointclouds[radar_frame_id], ax2, None, None, 30, -30, "Radar Pointcloud")
+    draw_poinclouds_on_axis(radar_pointclouds[radar_frame_id], ax2, None, None, 30, 240, "Radar Pointcloud")
 
     ax3 = fig.add_subplot(133)
     draw_doppler_on_axis(radar_frames[radar_frame_id], pointcloud_cfg, ax3)
