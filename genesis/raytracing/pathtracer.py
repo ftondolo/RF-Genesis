@@ -31,7 +31,7 @@ class RayTracer:
         self.body = None #smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.axis = [0, 1, 0]
-        self.angle = 3.6
+        self.angle = 1
         self.cumulative_angle = 0.0  # Track cumulative rotation
 
     def gen_rays(self):
@@ -135,7 +135,7 @@ class RayTracer:
         intensity = mi.render(self.scene, sensor=main_sensor, spp=32)
 
         t = np.array(si.t)
-        t[t > 9999] = 0
+        t[t > 99999] = 0
         distance = t.reshape(self.PIR_resolution, self.PIR_resolution)
         intensity = np.array(intensity)[:, :, 0]
         velocity = np.zeros((self.PIR_resolution, self.PIR_resolution))
@@ -199,7 +199,7 @@ class RayTracer:
         
         # Filter out invalid points (no intersection or too far)
         distances = np.array(si.t)
-        valid_mask = distances < 100  # Filter points beyond 100 units
+        valid_mask = distances < 1000  # Filter points beyond 100 units
         
         # Reshape and filter
         depth_pointcloud = depth_pointcloud.reshape(-1, 3)
@@ -278,7 +278,7 @@ def get_deafult_scene(res):
             'smpl':{
                 'type': 'ply',
                 'filename': '/content/RF-Genesis/models/trihedral.ply',
-                'to_world' : T.scale(1),#translate([0, 0, 0]),
+                'to_world' : T.scale(0.1),#translate([0, 0, 0]),
                 "mybsdf": {
                     "type": "ref",
                     "id": "while"
