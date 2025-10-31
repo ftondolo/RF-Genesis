@@ -209,7 +209,7 @@ class RayTracer:
     
 
 
-def get_deafult_scene(res = 512):
+def get_deafult_scene(res):
     integrator = mi.load_dict({
         'type': 'direct',
         })
@@ -250,8 +250,8 @@ def get_deafult_scene(res = 512):
             'fov': 60,
             'film': {
                 'type': 'hdrfilm',
-                'width': res,
-                'height': res,
+                'width': 512,
+                'height': 512,
                 'rfilter': { 'type': 'gaussian' },
                 'sample_border': True,
                 'pixel_format': 'luminance',
@@ -278,7 +278,7 @@ def get_deafult_scene(res = 512):
             'smpl':{
                 'type': 'ply',
                 'filename': '/content/RF-Genesis/models/trihedral.ply',
-                'to_world' : T.translate([0, 0, 0]).scale(0.05),
+                'to_world' : T.translate([0, 0, 0]).scale(0.1),
                 "mybsdf": {
                     "type": "ref",
                     "id": "while"
