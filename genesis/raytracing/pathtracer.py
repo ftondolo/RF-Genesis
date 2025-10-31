@@ -278,7 +278,7 @@ def get_deafult_scene(res):
             'smpl':{
                 'type': 'ply',
                 'filename': '/content/RF-Genesis/models/trihedral.ply',
-                'to_world' : T.translate([0, 0, 0]),
+                'to_world' : T.translate([0, 0, 0]).scale(10),
                 "mybsdf": {
                     "type": "ref",
                     "id": "while"
