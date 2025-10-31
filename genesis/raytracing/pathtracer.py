@@ -218,8 +218,8 @@ def get_deafult_scene(res):
     sensor = mi.load_dict({
             'type': 'perspective',
             'to_world': T.look_at(
-                            origin=(0, 1, 0),
-                            target=(0, 1, 0),
+                            origin=(1, 1, 0),
+                            target=(0, 0, 0),
                             up=(0, 1, 0)
                         ),
             'fov': 60,
@@ -243,8 +243,8 @@ def get_deafult_scene(res):
     depth_sensor = mi.load_dict({
             'type': 'perspective',
             'to_world': T.look_at(
-                            origin=(0, 1, 0),
-                            target=(0, 1, 0),
+                            origin=(1, 1, 0),
+                            target=(0, 0, 0),
                             up=(0, 1, 0)
                         ),
             'fov': 60,
@@ -289,7 +289,7 @@ def get_deafult_scene(res):
                 'type': 'spot',
                 'cutoff_angle': 40,
                 'to_world': T.look_at(
-                                origin=(0, 0, 0),
+                                origin=(1, 0, 0),
                                 target=(0, 0, 0),
                                 up=(0, 1, 0)
                             ),
