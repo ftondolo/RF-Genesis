@@ -56,7 +56,7 @@ def draw_doppler_on_axis(radar_frame,pointcloud_cfg, ax):
     ax.set_title("Doppler FFT", fontsize=20)
 
 def draw_combined(i, pointcloud_cfg, radar_frames, radar_pointclouds, depth_pointclouds):
-    radar_frame_id = int(i/3)
+    radar_frame_id = int(i)
 
     fig = plt.figure(figsize=(12, 6))
 
@@ -89,7 +89,7 @@ def save_video(radar_cfg_file, radar_frames_file, depth_pointclouds_file, output
         radar_pointclouds.append(pc)
     
     num_radar_frames = len(radar_frames)
-    num_video_frames = num_radar_frames * 3
+    num_video_frames = num_radar_frames
     
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_file, fourcc, 30, (1200, 600))
