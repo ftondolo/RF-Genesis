@@ -89,7 +89,7 @@ def save_video(radar_cfg_file, radar_frames_file, depth_pointclouds_file, output
         radar_pointclouds.append(pc)
     
     num_radar_frames = len(radar_frames)
-    num_video_frames = num_radar_frames//3
+    num_video_frames = num_radar_frames*3
     
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_file, fourcc, 30, (1200, 600))
