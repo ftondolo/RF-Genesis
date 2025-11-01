@@ -321,10 +321,10 @@ def trace(motion_filename=None, rotation_axis=[0,0,1], angle=1.0):
     PIRs = []
     pointclouds = []
     depth_pointclouds = []
-    total_motion_frames = 2160
+    total_motion_frames = 720
 
     for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering PIRs"):
-        raytracer.update_mesh_rotation(axis=rotation_axis, angle=angle/30)
+        raytracer.update_mesh_rotation(axis=rotation_axis, angle=angle
 
         # Radar pipeline (128x128)
         PIR, pc = raytracer.trace()
