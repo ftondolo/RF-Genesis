@@ -56,15 +56,14 @@ def draw_doppler_on_axis(radar_frame,pointcloud_cfg, ax):
     ax.set_title("Doppler FFT", fontsize=20)
 
 def draw_combined(i, pointcloud_cfg, radar_frames, radar_pointclouds, depth_pointclouds):
-    radar_frame_id = int(i/3)
-
+    video_frame_id = (3*i)+1
     fig = plt.figure(figsize=(12, 6))
 
     ax1 = fig.add_subplot(131, projection='3d')
-    draw_depth_pointcloud(depth_pointclouds[radar_frame_id], ax1, elev=0, azim=150)
+    draw_depth_pointcloud(depth_pointclouds[video_frame_id], ax1, elev=30, azim=150)
 
     ax2 = fig.add_subplot(132, projection='3d')
-    draw_poinclouds_on_axis(radar_pointclouds[radar_frame_id], ax2, None, None, 0, 150, "Radar Pointcloud")
+    draw_poinclouds_on_axis(radar_pointclouds[radar_frame_id], ax2, None, None, 30, 150, "Radar Pointcloud")
 
     ax3 = fig.add_subplot(133)
     draw_doppler_on_axis(radar_frames[radar_frame_id], pointcloud_cfg, ax3)
@@ -89,12 +88,11 @@ def save_video(radar_cfg_file, radar_frames_file, depth_pointclouds_file, output
         radar_pointclouds.append(pc)
     
     num_radar_frames = len(radar_frames)
-    num_video_frames = num_radar_frames*3
     
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_file, fourcc, 30, (1200, 600))
     
-    for i in tqdm(range(num_video_frames)):
+    for i in tqdm(range(num_radar_frames)):
         frame = draw_combined(i, pointcloud_cfg, radar_frames, radar_pointclouds, depth_pointclouds)
         rgb_data = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         out.write(rgb_data)
