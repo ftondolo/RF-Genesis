@@ -63,10 +63,10 @@ def draw_combined(i, pointcloud_cfg, radar_frames, radar_pointclouds, depth_poin
     draw_depth_pointcloud(depth_pointclouds[video_frame_id], ax1, elev=30, azim=150)
 
     ax2 = fig.add_subplot(132, projection='3d')
-    draw_poinclouds_on_axis(radar_pointclouds[radar_frame_id], ax2, None, None, 30, 150, "Radar Pointcloud")
+    draw_poinclouds_on_axis(radar_pointclouds[i], ax2, None, None, 30, 150, "Radar Pointcloud")
 
     ax3 = fig.add_subplot(133)
-    draw_doppler_on_axis(radar_frames[radar_frame_id], pointcloud_cfg, ax3)
+    draw_doppler_on_axis(radar_frames[i], pointcloud_cfg, ax3)
 
     plt.tight_layout()
     fig.canvas.draw()
