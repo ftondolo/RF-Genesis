@@ -31,8 +31,8 @@ class RayTracer:
         self.body = None #smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.axis = [0, 1, 0]
-        self.angle = -1.0
-        self.cumulative_angle = 0.0  # Track cumulative rotation
+        self.angle = 1.0
+        self.cumulative_angle = -1.0  # Track cumulative rotation
 
     def gen_rays(self):
         """Generate rays for all pixels in the film"""
