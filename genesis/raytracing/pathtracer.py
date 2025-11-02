@@ -301,7 +301,7 @@ def get_deafult_scene(res):
 
 
 
-def trace(motion_filename=None, rotation_axis=[0,0,1], angle=1.0):
+def trace(motion_filename=None, rotation_axis=[0,1,0], angle=1.0):
     """
     Trace rays through SMPL body motion sequence.
 
