@@ -31,7 +31,7 @@ class RayTracer:
         self.body = None #smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.axis = [0, 1, 0]
-        self.angle = 1.0
+        self.angle = -1.0
         self.cumulative_angle = 0.0  # Track cumulative rotation
 
     def gen_rays(self):
@@ -321,7 +321,7 @@ def trace(motion_filename=None, rotation_axis=[0,0,1], angle=1.0):
     PIRs = []
     pointclouds = []
     depth_pointclouds = []
-    total_motion_frames = 720
+    total_motion_frames = 721
 
     for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering PIRs"):
         raytracer.update_mesh_rotation(axis=rotation_axis, angle=angle)
