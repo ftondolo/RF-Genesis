@@ -5,7 +5,7 @@ import json
 
 def FSPL(distance, frequency=77e9):
     wavelength = 3e8 / frequency
-    return (wavelength / (4 * 3.14159265358979323846 * distance)) ** 2
+    return (wavelength / (4 * 3.14159265358979323846264338327950288419716939937510 * distance)) ** 2
 
 def dechirp(x,xref):
     return xref * torch.conj(x)
