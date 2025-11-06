@@ -109,7 +109,7 @@ class RayTracer:
         vertices_np = self.original_vertices.reshape(-1, 3)
 
         # Create rotation matrix with cumulative angle
-        rotation_transform = mi.Transform4f.rotate(axis=axis, angle=self.cumulative_angle)
+        rotation_transform = mi.Transform4f.rotate(axis=self.axis, angle=self.cumulative_angle)
         rotation_matrix = np.array(rotation_transform.matrix)[:3, :3]
 
         # Apply rotation to original vertices
@@ -324,7 +324,7 @@ def trace(motion_filename=None):
     total_motion_frames = 721
 
     for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering PIRs"):
-        raytracer.update_mesh_rotation(axis=raytracer.axis, angle=raytracer.angle)
+        raytracer.update_mesh_rotation()
 
         # Radar pipeline (128x128)
         PIR, pc = raytracer.trace()
