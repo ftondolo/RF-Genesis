@@ -30,7 +30,7 @@ class RayTracer:
 
         self.body = None #smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.axis = [0, 1, 0]
+        self.axis = [0, 0, 1]
         self.angle = 1.0
         self.cumulative_angle = -1.0  # Track cumulative rotation
 
@@ -101,9 +101,9 @@ class RayTracer:
         self.params_scene['tx.to_world'] = transform
         self.params_scene.update()
 
-    def update_mesh_rotation(self, axis=[0, 1, 0], angle=1.0):
+    def update_mesh_rotation(self):
         # Update cumulative rotation angle
-        self.cumulative_angle += angle
+        self.cumulative_angle += self.angle
 
         # Start from original vertices (prevents accumulation)
         vertices_np = self.original_vertices.reshape(-1, 3)
@@ -301,7 +301,7 @@ def get_deafult_scene(res):
 
 
 
-def trace(motion_filename=None, rotation_axis=[0,1,0], angle=1.0):
+def trace(motion_filename=None):
     """
     Trace rays through SMPL body motion sequence.
 
@@ -324,7 +324,7 @@ def trace(motion_filename=None, rotation_axis=[0,1,0], angle=1.0):
     total_motion_frames = 721
 
     for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering PIRs"):
-        raytracer.update_mesh_rotation(axis=rotation_axis, angle=angle)
+        raytracer.update_mesh_rotation(axis=raytracer.axis, angle=raytracer.angle)
 
         # Radar pipeline (128x128)
         PIR, pc = raytracer.trace()
