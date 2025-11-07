@@ -245,7 +245,7 @@ def get_deafult_scene(res):
             'to_world': T.look_at(
                             origin=(0, 0, 1),
                             target=(0, 0, 0),
-                            up=(0, 1, 0)
+                            up=(0, 0, 1)
                         ),
             'fov': 60,
             'film': {
