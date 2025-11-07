@@ -95,7 +95,7 @@ class RayTracer:
         transform = mi.Transform4f.look_at(
                             origin=origin,
                             target=target,
-                            up=(0, 0, 1)
+                            up=(0, 1, 0)
                         )
         self.params_scene['sensor.to_world'] = transform
         self.params_scene['tx.to_world'] = transform
@@ -220,7 +220,7 @@ def get_deafult_scene(res):
             'to_world': T.look_at(
                             origin=(0, 0, 1),
                             target=(0, 0, 0),
-                            up=(0, 0, 1)
+                            up=(0, 1, 0)
                         ),
             'fov': 60,
             'film': {
@@ -245,7 +245,7 @@ def get_deafult_scene(res):
             'to_world': T.look_at(
                             origin=(0, 0, 1),
                             target=(0, 0, 0),
-                            up=(0, 0, 1)
+                            up=(0, 1, 0)
                         ),
             'fov': 60,
             'film': {
@@ -291,7 +291,7 @@ def get_deafult_scene(res):
                 'to_world': T.look_at(
                                 origin=(0, 0, 1),
                                 target=(0, 0, 0),
-                                up=(0, 0, 1)
+                                up=(0, 1, 0)
                             ),
                 'intensity': 1000.0,
             }
