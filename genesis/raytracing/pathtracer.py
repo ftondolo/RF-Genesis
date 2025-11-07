@@ -30,7 +30,7 @@ class RayTracer:
 
         self.body = None #smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.axis = [0, 0, 1]
+        self.axis = [0, 1, 0]
         self.angle = 1.0
         self.cumulative_angle = -1.0  # Track cumulative rotation
 
@@ -245,7 +245,7 @@ def get_deafult_scene(res):
             'to_world': T.look_at(
                             origin=(0, 0, 1),
                             target=(0, 0, 0),
-                            up=(0, 0, 1)
+                            up=(0, 1, 0)
                         ),
             'fov': 60,
             'film': {
