@@ -27,7 +27,7 @@ def draw_depth_pointcloud(depth_pc, ax, elev, azim):
     ax.set_xlim(-0.5, 0.5)
     ax.set_ylim(-0.5, 0.5)
     ax.set_zlim(-0.5, 0.5)
-    ax.view_init(elev=elev, azim=azim, roll=105)
+    ax.view_init(elev=elev, azim=azim)
     ax.set_title('Depth Pointcloud', fontsize=20)
     return ax
 
@@ -45,7 +45,7 @@ def draw_poinclouds_on_axis(pc,ax, tx,rx,elev,azim,title):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    ax.view_init(elev=elev, azim=azim, roll=105)
+    ax.view_init(elev=elev, azim=azim)
     ax.set_title(title, fontsize=20)
 
 def draw_doppler_on_axis(radar_frame,pointcloud_cfg, ax):
@@ -60,10 +60,10 @@ def draw_combined(i, pointcloud_cfg, radar_frames, radar_pointclouds, depth_poin
     fig = plt.figure(figsize=(12, 6))
 
     ax1 = fig.add_subplot(131, projection='3d')
-    draw_depth_pointcloud(depth_pointclouds[video_frame_id], ax1, elev=0, azim=120)
+    draw_depth_pointcloud(depth_pointclouds[video_frame_id], ax1, elev=0, azim=90)
 
     ax2 = fig.add_subplot(132, projection='3d')
-    draw_poinclouds_on_axis(radar_pointclouds[i], ax2, None, None, 0, 120, "Radar Pointcloud")
+    draw_poinclouds_on_axis(radar_pointclouds[i], ax2, None, None, 0, 90, "Radar Pointcloud")
 
     ax3 = fig.add_subplot(133)
     draw_doppler_on_axis(radar_frames[i], pointcloud_cfg, ax3)
