@@ -1,4 +1,4 @@
-fimport drjit as dr
+import drjit as dr
 import numpy as np
 from . import smpl
 import torch
@@ -51,7 +51,7 @@ class RayTracer:
         # Total number of pixels
         pixel_count = int(film_size[0] * film_size[1])
 
-        epth_pixel_count = int(depth_film_size[0] * depth_film_size[1])
+        depth_pixel_count = int(depth_film_size[0] * depth_film_size[1])
         
         # Seed sampler
         sampler.seed(0, pixel_count)
@@ -256,7 +256,7 @@ def trace(motion_filename=None):
     total_motion_frames = 721
 
     for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering PIRs"):
-        rotation_matrix = np.array(mi.Transform4f.rotate(axis=raytracer.axis, angle=raytracer.angle()*frame_idx).matrix)[:3, :3]
+        rotation_matrix = np.array(mi.Transform4f.rotate(axis=raytracer.axis, angle=raytracer.angle*frame_idx).matrix)[:3, :3]
         vertices_np = raytracer.original_vertices.reshape(-1, 3)
         rotated_vertices = vertices_np @ rotation_matrix.T
         rotated_flat = CudaFloat(rotated_vertices.flatten())
