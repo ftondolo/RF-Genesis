@@ -1,4 +1,4 @@
-import drjit as dr
+fimport drjit as dr
 import numpy as np
 from . import smpl
 import torch
@@ -42,24 +42,43 @@ class RayTracer:
         film = sensor.film()
         sampler = sensor.sampler()
         film_size = film.crop_size()
+
+        depth_sensor = self.scene.sensors()[0]
+        depth_film = depth_sensor.film()
+        depth_sampler = depth_sensor.sampler()
+        depth_film_size = depth_film.crop_size()
         
         # Total number of pixels
         pixel_count = int(film_size[0] * film_size[1])
+
+        epth_pixel_count = int(depth_film_size[0] * depth_film_size[1])
         
         # Seed sampler
         sampler.seed(0, pixel_count)
+
+        depth_sampler.seed(0, depth_pixel_count)
         
         # Generate pixel indices
         idx = dr.arange(mi.UInt32, pixel_count)
+
+        depth_idx = dr.arange(mi.UInt32, depth_pixel_count)
         
         # Convert to 2D coordinates
         x = idx % int(film_size[0])
         y = idx // int(film_size[0])
+
+        depth_x = depth_idx % int(depth_film_size[0])
+        depth_y = depth_idx // int(depth_film_size[0])
         
         # Normalize to [0,1] and add 0.5 to sample pixel centers
         pos = mi.Point2f(
             (mi.Float(x) + 0.5) / film_size[0],
             (mi.Float(y) + 0.5) / film_size[1]
+        )
+
+        depth_pos = mi.Point2f(
+            (mi.Float(depth_x) + 0.5) / depth_film_size[0],
+            (mi.Float(depth_y) + 0.5) / depth_film_size[1]
         )
         
         # Sample rays - the result is already a ray bundle, not a tuple
@@ -69,27 +88,22 @@ class RayTracer:
             sample2=pos,
             sample3=sampler.next_1d()
         )
+
+        depth_rays = depth_sensor.sample_ray(
+            time=depth_sampler.next_1d(),
+            sample1=depth_sampler.next_1d(), 
+            sample2=depth_pos,
+            sample3=depth_sampler.next_1d()
+        )
         
         # Check if it's returning a tuple and extract rays if needed
         if isinstance(rays, tuple):
             rays = rays[0]
-        
-        return rays
-    
-    def update_pose(self,pose_params, shape_params, translation= None):
-        
-        pose_params = torch.tensor(pose_params).view(1, -1)
-        shape_params = torch.tensor(shape_params).view(1, -1)
 
-        if translation is not None:
-            transform = mi.Transform4f.translate(translation)
-            transform = torch.tensor(transform.matrix).squeeze()
-
-
-        vertices_mi=smpl.call_smpl_layer(pose_params,shape_params,self.body,need_face=False,transform=transform)
+        if isinstance(depth_rays, tuple):
+            depth_rays = depth_rays[0]
         
-        self.params_scene['smpl.vertex_positions'] = dr.ravel(vertices_mi)
-        self.params_scene.update()
+        return rays, depth_rays
     
     def update_sensor(self,origin, target):
         transform = mi.Transform4f.look_at(
@@ -101,34 +115,11 @@ class RayTracer:
         self.params_scene['tx.to_world'] = transform
         self.params_scene.update()
 
-    def update_mesh_rotation(self):
-        # Update cumulative rotation angle
-        self.cumulative_angle += self.angle
-
-        # Start from original vertices (prevents accumulation)
-        vertices_np = self.original_vertices.reshape(-1, 3)
-
-        # Create rotation matrix with cumulative angle
-        rotation_transform = mi.Transform4f.rotate(axis=self.axis, angle=self.cumulative_angle)
-        rotation_matrix = np.array(rotation_transform.matrix)[:3, :3]
-
-        # Apply rotation to original vertices
-        rotated_vertices = vertices_np @ rotation_matrix.T
-
-        # Flatten and convert back to DrJit array
-        rotated_flat = rotated_vertices.flatten()
-
-        # Create new DrJit array - use dr.cuda.ad.Float to match the variant
-        from drjit.cuda.ad import Float as CudaFloat
-        result = CudaFloat(rotated_flat)
-
-        # Update scene
-        self.params_scene['smpl.vertex_positions'] = result
-        self.params_scene.update()
-
     def trace(self):
-        ray = self.gen_rays()
+        ray, depth_rays = self.gen_rays()
+        
         si = self.scene.ray_intersect(ray)
+        depth_si = self.scene.ray_intersect(depth_rays)
         
         # Use main sensor (128x128) for rendering, not default sensor
         main_sensor = self.scene.sensors()[1]
@@ -142,71 +133,14 @@ class RayTracer:
 
         PIR = np.stack([distance, intensity, velocity], axis=2)
         pointclouds = np.array(si.p)
-        return PIR, pointclouds
-    
-    def get_depth_pointcloud(self):
-        """
-        Generate high-resolution depth pointcloud from dedicated depth sensor.
-        This is separate from the radar pipeline and used purely for visualization.
         
-        Returns:
-            depth_pointcloud: numpy array of shape (N, 3) with valid 3D points
-        """
-        import drjit as dr
-        
-        # Use the depth sensor (256x256) at index 0
-        depth_sensor = self.scene.sensors()[0]
-        film = depth_sensor.film()
-        sampler = depth_sensor.sampler()
-        film_size = film.crop_size()
-        
-        # Total number of pixels
-        pixel_count = int(film_size[0] * film_size[1])
-        
-        # Seed sampler
-        sampler.seed(0, pixel_count)
-        
-        # Generate pixel indices
-        idx = dr.arange(mi.UInt32, pixel_count)
-        
-        # Convert to 2D coordinates
-        x = idx % int(film_size[0])
-        y = idx // int(film_size[0])
-        
-        # Normalize to [0,1] and add 0.5 to sample pixel centers
-        pos = mi.Point2f(
-            (mi.Float(x) + 0.5) / film_size[0],
-            (mi.Float(y) + 0.5) / film_size[1]
-        )
-        
-        # Sample rays from depth sensor
-        rays = depth_sensor.sample_ray(
-            time=sampler.next_1d(),
-            sample1=sampler.next_1d(), 
-            sample2=pos,
-            sample3=sampler.next_1d()
-        )
-        
-        # Handle tuple return
-        if isinstance(rays, tuple):
-            rays = rays[0]
-        
-        # Intersect rays with scene
-        si = self.scene.ray_intersect(rays)
-        
-        # Get 3D intersection points
-        depth_pointcloud = np.array(si.p)
-        
-        # Filter out invalid points (no intersection or too far)
-        distances = np.array(si.t)
-        valid_mask = distances < 1000  # Filter points beyond 100 units
-        
-        # Reshape and filter
+        depth_pointcloud = np.array(depth_si.p)
+        distances = np.array(depth_si.t)
+        valid_mask = distances < 100
         depth_pointcloud = depth_pointcloud.reshape(-1, 3)
         depth_pointcloud = depth_pointcloud[valid_mask]
         
-        return depth_pointcloud
-    
+        return PIR, pointclouds, depth_pointcloud
 
 
 def get_deafult_scene(res):
@@ -299,8 +233,6 @@ def get_deafult_scene(res):
         }
     return default_scene
 
-
-
 def trace(motion_filename=None):
     """
     Trace rays through SMPL body motion sequence.
@@ -316,7 +248,7 @@ def trace(motion_filename=None):
         pointclouds: List of pointcloud tensors (for radar pipeline)
         depth_pointclouds: List of depth pointclouds (for visualization)
     """
-
+    from drjit.cuda.ad import Float as CudaFloat
     raytracer = RayTracer()
     PIRs = []
     pointclouds = []
@@ -324,15 +256,20 @@ def trace(motion_filename=None):
     total_motion_frames = 721
 
     for frame_idx in tqdm(range(0, total_motion_frames), desc="Rendering PIRs"):
-        raytracer.update_mesh_rotation()
-
+        rotation_matrix = np.array(mi.Transform4f.rotate(axis=raytracer.axis, angle=raytracer.angle()*frame_idx).matrix)[:3, :3]
+        vertices_np = raytracer.original_vertices.reshape(-1, 3)
+        rotated_vertices = vertices_np @ rotation_matrix.T
+        rotated_flat = CudaFloat(rotated_vertices.flatten())
+        
+        raytracer.params_scene['smpl.vertex_positions'] = rotated_flat
+        raytracer.params_scene.update()
+                
         # Radar pipeline (128x128)
-        PIR, pc = raytracer.trace()
+        PIR, pc, depth_pc = raytracer.trace()
         PIRs.append(torch.from_numpy(PIR).cuda())
         pointclouds.append(torch.from_numpy(pc).cuda())
         
         # Depth pointcloud for visualization (higher resolution)
-        depth_pc = raytracer.get_depth_pointcloud()
         depth_pointclouds.append(depth_pc)  # Keep as numpy for easy saving
 
     return PIRs, pointclouds, depth_pointclouds
