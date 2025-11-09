@@ -18,23 +18,23 @@ def draw_depth_pointcloud(depth_pc, ax, elev, azim):
         return ax
     
     colors = depth_pc[:, 2]
-    ax.scatter(depth_pc[:, 0], depth_pc[:, 2], depth_pc[:, 1], 
+    ax.scatter(depth_pc[:, 0], depth_pc[:, 1], depth_pc[:, 2], 
               c=colors, cmap=plt.cm.viridis, s=2, alpha=0.8)
     
     ax.set_xlabel('X')
-    ax.set_ylabel('Z')
-    ax.set_zlabel('Y')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
     ax.set_xlim(-0.5, 0.5)
     ax.set_ylim(-0.5, 0.5)
     ax.set_zlim(-0.5, 0.5)
-    ax.view_init(elev=elev, azim=azim)
+    ax.view_init(elev=elev, azim=azim, vertical_axis="y", roll=90)
     ax.set_title('Depth Pointcloud', fontsize=20)
     return ax
 
 
 def draw_poinclouds_on_axis(pc,ax, tx,rx,elev,azim,title):
     pc = np.transpose(pc)
-    ax.scatter(-pc[0], pc[2], pc[1], c=pc[4], cmap=plt.hot())
+    ax.scatter(-pc[0], pc[1], pc[2], c=pc[4], cmap=plt.hot())
     if tx is not None:
         ax.scatter(tx[:,0], tx[:,2], tx[:,1], c="green", s= 50, marker =',', cmap=plt.hot())
     if rx is not None:
@@ -43,9 +43,9 @@ def draw_poinclouds_on_axis(pc,ax, tx,rx,elev,azim,title):
     ax.set_ylim(-0.5, 0.5)
     ax.set_zlim(-0.5, 0.5)
     ax.set_xlabel('X')
-    ax.set_ylabel('Z')
-    ax.set_zlabel('Y')
-    ax.view_init(elev=elev, azim=azim)
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.view_init(elev=elev, azim=azim, vertical_axis="y", roll=90)
     ax.set_title(title, fontsize=20)
 
 def draw_doppler_on_axis(radar_frame,pointcloud_cfg, ax):
