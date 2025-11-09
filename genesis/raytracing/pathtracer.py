@@ -30,7 +30,7 @@ class RayTracer:
 
         self.body = None #smpl.get_smpl_layer()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.axis = [0, 1, 0]
+        self.axis = [1, 0, 0]
         self.angle = 1.0
         self.cumulative_angle = -1.0  # Track cumulative rotation
 
@@ -212,7 +212,7 @@ def get_deafult_scene(res):
             'smpl':{
                 'type': 'ply',
                 'filename': '/content/RF-Genesis/models/trihedral.ply',
-                'to_world' : T.scale(1).translate([0, 0, 0]).rotate(axis=[0, 0, 1], angle=0),
+                'to_world' : T.scale(1).translate([0, 0, 0]).rotate(axis=[1, 0, 0], angle=90),
                 "mybsdf": {
                     "type": "ref",
                     "id": "while"
