@@ -14,32 +14,24 @@ for i in range(720):
         'sensor': {
             'type': 'perspective',
             'fov': 60,
-            'to_world': mi.ScalarTransform4f.look_at([0, 0, 1], [0,0,0], [0,1,0]),
+            'to_world': mi.ScalarTransform4f.look_at([1, 0, 0], [0,0,0], [0,1,0]),
             'film': {'type': 'hdrfilm', 'width': 256, 'height': 256},
             'sampler': {'type': 'independent', 'sample_count': 32}
         },
         'mesh': {
             'type': 'ply',
             'filename': '/content/RF-Genesis/models/trihedral.ply',
-            'to_world': T.scale([1, 1, 1]) @ T.rotate([0,0,1], 90) @ T.rotate([0,1,0], i * 1.0),
+            'to_world': T.rotate([0,0,1], 90.0) @ T.rotate([0,1,0], 90.0) @  T.scale([1, 1, 1]) @ T.rotate([0,0,1], i * 1.0),
             'bsdf': {
                 'type': 'diffuse',
                 'reflectance': { 'type': 'rgb', 'value': [0.8, 0.8, 0.8] }
-            }
-        },
-        'floor': {
-            'type': 'rectangle',
-            'to_world': T.translate([0,0,0]) @ T.scale([10,10,10]),
-            'bsdf': {
-                'type': 'diffuse',
-                'reflectance': { 'type': 'rgb', 'value': [0.3, 0.3, 0.3] }
             }
         },
         'light': {
 		'type': 'spot',
                 'cutoff_angle': 40,
                 'to_world': T.look_at(
-                                origin=(0, 0, 1),
+                                origin=(1, 0, 0),
                                 target=(0, 0, 0),
                                 up=(0, 1, 0)
                             ),
