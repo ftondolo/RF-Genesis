@@ -15,13 +15,13 @@ for i in range(720):
             'type': 'perspective',
             'fov': 60,
             'to_world': mi.ScalarTransform4f.look_at([1, 0, 0], [0,0,0], [0,1,0]),
-            'film': {'type': 'hdrfilm', 'width': 256, 'height': 256},
+            'film': {'type': 'hdrfilm', 'width': 128, 'height': 128},
             'sampler': {'type': 'independent', 'sample_count': 32}
         },
         'mesh': {
             'type': 'ply',
             'filename': '/content/RF-Genesis/models/trihedral.ply',
-            'to_world': T.rotate([0,0,1], 90.0) @ T.rotate([0,1,0], 90.0) @  T.scale([1, 1, 1]) @ T.rotate([0,0,1], i * 1.0),
+            'to_world': T.translate([-0.1,-0.1,0]) @  T.rotate([0,0,1], 90.0) @ T.rotate([0,1,0], 90.0) @  T.scale([1, 1, 1]) @ T.rotate([0,0,1], i * 1.0),
             'bsdf': {
                 'type': 'diffuse',
                 'reflectance': { 'type': 'rgb', 'value': [0.8, 0.8, 0.8] }
@@ -36,10 +36,6 @@ for i in range(720):
                                 up=(0, 1, 0)
                             ),
                 'intensity': { 'type': 'rgb', 'value': [2.0, 2.0, 2.0] }
-        },
-        'ambient': {
-            'type': 'constant',
-            'radiance': { 'type': 'rgb', 'value': 0.25 }
         }
     })
     
