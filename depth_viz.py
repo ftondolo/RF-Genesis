@@ -21,7 +21,7 @@ for i in range(720):
         'mesh': {
             'type': 'ply',
             'filename': '/content/RF-Genesis/models/trihedral.ply',
-            'to_world': T.translate([-0.1,-0.1,0]) @  T.rotate([0,0,1], 90.0) @ T.rotate([0,1,0], 90.0) @  T.scale([1, 1, 1]) @ T.rotate([0,0,1], i * 1.0),
+            'to_world': T.translate([0,0,0]) @ T.rotate([0,0,1], i * 1.0) @ T.rotate([0,0,1], 90.0) @ T.rotate([0,1,0], 90.0) @ T.scale([1, 1, 1]),
             'bsdf': {
                 'type': 'diffuse',
                 'reflectance': { 'type': 'rgb', 'value': [0.8, 0.8, 0.8] }
