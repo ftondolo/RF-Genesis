@@ -4,7 +4,7 @@ import time
 from genesis.raytracing import pathtracer_new as pathtracer
 from genesis.raytracing import signal_generator
 
-from genesis.environment_diffusion import environemnt_diff
+#from genesis.environment_diffusion import environemnt_diff
 #from genesis.object_diffusion import object_diff
 from genesis.visualization import visualize
 
