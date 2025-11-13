@@ -27,7 +27,7 @@ def draw_depth_pointcloud(depth_pc, ax, elev, azim):
     ax.set_xlim(-0.5, 0.5)
     ax.set_ylim(-0.5, 0.5)
     ax.set_zlim(-0.5, 0.5)
-    ax.view_init(elev=elev, azim=azim)
+    ax.view_init(elev=elev, azim=azim, vertical_axis="y")
     ax.set_title('Depth Pointcloud', fontsize=20)
     return ax
 
@@ -45,7 +45,7 @@ def draw_poinclouds_on_axis(pc,ax, tx,rx,elev,azim,title):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    ax.view_init(elev=elev, azim=azim, vertical_axis="y", roll=180)
+    ax.view_init(elev=elev, azim=azim, vertical_axis="y")
     ax.set_title(title, fontsize=20)
 
 def draw_doppler_on_axis(radar_frame,pointcloud_cfg, ax):
