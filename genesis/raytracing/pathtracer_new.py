@@ -119,9 +119,9 @@ class RayTracer:
 
         t = np.array(si.t)
         t[t > 99999] = 0
-        distance = t.reshape(self.PIR_resolution, self.PIR_resolution)
+        distance = t.reshape(128, 128)
         intensity = np.array(intensity)[:, :, 0]
-        velocity = np.zeros((self.PIR_resolution, self.PIR_resolution))
+        velocity = np.zeros((128, 128))
 
         PIR = np.stack([distance, intensity, velocity], axis=2)
         pointclouds = np.array(si.p)
