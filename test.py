@@ -1,7 +1,7 @@
 import argparse
 from termcolor import colored
 import time
-from genesis.raytracing import pathtracer
+from genesis.raytracing import pathtracer_new as pathtracer
 from genesis.raytracing import signal_generator
 
 from genesis.environment_diffusion import environemnt_diff
