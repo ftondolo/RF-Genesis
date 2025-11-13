@@ -44,7 +44,7 @@ def draw_poinclouds_on_axis(pc,ax, tx,rx,elev,azim,title):
     ax.set_zlim(-0.5, 0.5)
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
-    ax.set_zlabel('Z')u
+    ax.set_zlabel('Z')
     ax.view_init(elev=elev, azim=azim, vertical_axis="y", roll=180)
     ax.set_title(title, fontsize=20)
 
