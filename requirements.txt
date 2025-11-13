@@ -17,6 +17,7 @@ smplx
 trimesh
 h5py
 spacy
+wheel
 chumpy
 ipykernel
 git+https://github.com/openai/CLIP.git
