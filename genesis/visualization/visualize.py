@@ -18,7 +18,7 @@ def draw_depth_pointcloud(depth_pc, ax, elev, azim):
         return ax
     
     colors = depth_pc[:, 0]
-    ax.scatter(depth_pc[:, 0], depth_pc[:, 2], depth_pc[:, 1], 
+    ax.scatter(depth_pc[:, 0], -depth_pc[:, 2], depth_pc[:, 1], 
               c=colors, cmap=plt.cm.viridis, s=2, alpha=0.8)
     
     ax.set_xlabel('X')
@@ -26,7 +26,7 @@ def draw_depth_pointcloud(depth_pc, ax, elev, azim):
     ax.set_zlabel('Z')
     ax.set_xlim(-0.5, 0.5)
     ax.set_ylim(0, 0.5)
-    ax.set_zlim(-0, 0.5)
+    ax.set_zlim(-0.5, 0.5)
     ax.view_init(elev=elev, azim=azim, vertical_axis="y")
     ax.set_title('Depth Pointcloud', fontsize=20)
     return ax
