@@ -17,8 +17,8 @@ def draw_depth_pointcloud(depth_pc, ax, elev, azim):
         ax.text(0, 0, 0, 'No valid points', fontsize=12)
         return ax
     
-    colors = depth_pc[:, 0]
-    ax.scatter(depth_pc[:, 0], -depth_pc[:, 2], depth_pc[:, 1], 
+    colors = depth_pc[:, 2]
+    ax.scatter(depth_pc[:, 0], depth_pc[:, 2], depth_pc[:, 1], 
               c=colors, cmap=plt.cm.viridis, s=2, alpha=0.8)
     
     ax.set_xlabel('X')
