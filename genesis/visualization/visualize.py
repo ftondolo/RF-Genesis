@@ -17,17 +17,17 @@ def draw_depth_pointcloud(depth_pc, ax, elev, azim):
         ax.text(0, 0, 0, 'No valid points', fontsize=12)
         return ax
     
-    colors = depth_pc[:, 2]
-    ax.scatter(depth_pc[:, 0], depth_pc[:, 2], depth_pc[:, 1], 
+    colors = depth_pc[:, 0]
+    ax.scatter(depth_pc[:, 0], depth_pc[:, 1], depth_pc[:, 2], 
               c=colors, cmap=plt.cm.viridis, s=2, alpha=0.8)
     
     ax.set_xlabel('X')
-    ax.set_ylabel('Z')
-    ax.set_zlabel('Y')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
     ax.set_xlim(-0.25, 0.25)
     ax.set_ylim(-0.25, 0.25)
-    ax.set_zlim(0, 0.5)
-    ax.view_init(elev=elev, azim=azim, vertical_axis="z")
+    ax.set_zlim(-0.25, 0.25)
+    ax.view_init(elev=elev, azim=azim, vertical_axis="y")
     ax.set_title('Depth Pointcloud', fontsize=20)
     return ax
 
