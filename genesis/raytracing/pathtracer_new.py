@@ -187,7 +187,7 @@ def get_deafult_scene(idx, angle):
             'smpl':{
                 'type': 'ply',
                 'filename': '/content/RF-Genesis/models/trihedral.ply',
-                'to_world' : T.translate([0,0,0]) @ T.rotate([0,0,1], idx*angle) @ T.rotate([1,0,0], 90.0) @ T.scale([1, 1, 1]),
+                'to_world' : T.translate([0,0,0]) @ T.rotate([0,1,0], idx*angle) @ T.scale([1, 1, 1]),
                 "mybsdf": {
                     "type": "ref",
                     "id": "while"
