@@ -232,6 +232,15 @@ def trace(motion_filename=None):
     for frame_idx in tqdm(range(0, total_motion_frames+1), desc="Rendering PIRs"):
         raytracer.scene = mi.load_dict(get_deafult_scene(idx=frame_idx, angle=raytracer.angle))
         raytracer.params_scene = mi.traverse(raytracer.scene)
+
+        points = raytracer.params_scene['smpl.vertex_positions']
+        centroid = np.mean(points, axis=0)
+
+        # Subtract the centroid from each point
+        xz_points = points[:, [0,2]] - centroid [:, [0,2]]
+        centered_flat = CudaFloat(xz_points.flatten())
+        raytracer.params_scene['smpl.vertex_positions'] = centered_flat
+        raytracer.params_scene.update()
                 
         # Radar pipeline (128x128)
         PIR, pc, depth_pc = raytracer.trace()
