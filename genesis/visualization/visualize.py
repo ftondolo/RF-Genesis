@@ -18,7 +18,7 @@ def draw_depth_pointcloud(depth_pc, ax, elev, azim):
         return ax
     
     colors = depth_pc[:, 0]
-    ax.scatter(depth_pc[:, 0], -depth_pc[:, 1], depth_pc[:, 2], 
+    ax.scatter(depth_pc[:, 0], depth_pc[:, 1], depth_pc[:, 2], 
               c=colors, cmap=plt.cm.viridis, s=2, alpha=0.8)
     
     ax.set_xlabel('X')
@@ -34,7 +34,7 @@ def draw_depth_pointcloud(depth_pc, ax, elev, azim):
 
 def draw_poinclouds_on_axis(pc,ax, tx,rx,elev,azim,title):
     pc = np.transpose(pc)
-    ax.scatter(pc[0], pc[1], -pc[2], c=pc[4], cmap=plt.hot())
+    ax.scatter(pc[0], pc[1], pc[2], c=pc[4], cmap=plt.hot())
     if tx is not None:
         ax.scatter(tx[:,0], tx[:,2], tx[:,1], c="green", s= 50, marker =',', cmap=plt.hot())
     if rx is not None:
