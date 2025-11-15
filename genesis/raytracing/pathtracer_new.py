@@ -233,13 +233,22 @@ def trace(motion_filename=None):
         raytracer.scene = mi.load_dict(get_deafult_scene(idx=frame_idx, angle=raytracer.angle))
         raytracer.params_scene = mi.traverse(raytracer.scene)
 
-        points = raytracer.params_scene['smpl.vertex_positions']
-        centroid = np.mean(points, axis=0)
-
-        # Subtract the centroid from each point
-        xz_points = points[:, [0,2]] - centroid [:, [0,2]]
-        centered_flat = CudaFloat(xz_points.flatten())
-        raytracer.params_scene['smpl.vertex_positions'] = centered_flat
+        from drjit.cuda.ad import Float as CudaFloat
+    
+        # Get current vertices
+        vertices = raytracer.params_scene['smpl.vertex_positions']
+        vertices_np = np.array(dr.detach(vertices)).reshape(-1, 3)
+    
+        # Calculate center on x and z axes
+        center_x = vertices_np[:, 0].mean()
+        center_z = vertices_np[:, 2].mean()
+        
+        # Center the vertices (subtract mean from x and z)
+        vertices_np[:, 0] -= center_x
+        vertices_np[:, 2] -= center_z
+    
+        # Update the scene
+        raytracer.params_scene['smpl.vertex_positions'] = CudaFloat(vertices_np.flatten())
         raytracer.params_scene.update()
                 
         # Radar pipeline (128x128)
