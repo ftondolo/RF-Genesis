@@ -144,7 +144,7 @@ def get_deafult_scene(idx, angle):
     sensor = mi.load_dict({
             'type': 'perspective',
             'to_world': T.look_at(
-                            origin=(1, 0, 0),
+                            origin=(-1, 0, 0),
                             target=(0, 0, 0),
                             up=(0, 1, 0)
                         ),
@@ -169,7 +169,7 @@ def get_deafult_scene(idx, angle):
     depth_sensor = mi.load_dict({
             'type': 'perspective',
             'fov': 60,
-            'to_world': mi.ScalarTransform4f.look_at([1, 0, 0], [0,0,0], [0,1,0]),
+            'to_world': mi.ScalarTransform4f.look_at([-1, 0, 0], [0,0,0], [0,1,0]),
             'film': {'type': 'hdrfilm', 'width': 128, 'height': 128},
             'sampler': {'type': 'independent', 'sample_count': 32}
         })
@@ -198,7 +198,7 @@ def get_deafult_scene(idx, angle):
                 'type': 'spot',
                 'cutoff_angle': 40,
                 'to_world': T.look_at(
-                                origin=(1, 0, 0),
+                                origin=(-1, 0, 0),
                                 target=(0, 0, 0),
                                 up=(0, 1, 0)
                             ),
