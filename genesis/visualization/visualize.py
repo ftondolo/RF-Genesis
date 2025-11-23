@@ -36,9 +36,9 @@ def draw_poinclouds_on_axis(pc,ax, tx,rx,elev,azim,title):
     pc = np.transpose(pc)
     ax.scatter(pc[0], pc[1], pc[2], c=pc[4], cmap=plt.hot())
     if tx is not None:
-        ax.scatter(tx[:,0], tx[:,1], tx[:,2], c="green", s= 50, marker =',', cmap=plt.hot())
+        ax.scatter(tx[:,0], tx[:,2], tx[:,1], c="green", s= 50, marker =',', cmap=plt.hot())
     if rx is not None:
-        ax.scatter(rx[:,0], rx[:,1], rx[:,2], c="orange", s= 50, marker =',', cmap=plt.hot())
+        ax.scatter(rx[:,0], rx[:,2], rx[:,1], c="orange", s= 50, marker =',', cmap=plt.hot())
     ax.set_xlim(-0.25, 0.25)
     ax.set_ylim(0, 0.25)
     ax.set_zlim(-0.25, 0.25)
